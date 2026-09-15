@@ -34,8 +34,8 @@
             <div class="tabs" id="tabs">
                 <button class="tab active" data-tab="training"><i class="fas fa-video"></i> Training Videos</button>
                 <button class="tab" data-tab="documents"><i class="fas fa-file-signature"></i> My Documents</button>
-                <button class="tab admin-only hidden" data-tab="people"><i class="fas fa-users"></i> People Progress</button>
                 <button class="tab admin-only hidden" data-tab="manage"><i class="fas fa-sliders-h"></i> Manage Videos</button>
+                <button class="tab admin-only hidden" data-tab="shared"><i class="fas fa-folder-open"></i> Manage Documents</button>
             </div>
 
             <!-- ===================== TRAINING (employee + admin) ===================== -->
@@ -58,6 +58,11 @@
                     <p>Forms to complete and files to upload. Everything here is private — only you and administrators can view it.</p>
                 </div>
                 <div id="documents-list" class="cards-list"></div>
+
+                <h3 class="uploads-heading"><i class="fas fa-folder-open"></i> Company Documents</h3>
+                <p class="uploads-subnote">Handbooks, policies, and forms from the administrators.</p>
+                <div id="shared-docs-list" class="cards-list"></div>
+
                 <h3 class="uploads-heading"><i class="fas fa-cloud-arrow-up"></i> Uploads</h3>
                 <div id="uploads-list" class="cards-list"></div>
             </section>
@@ -86,6 +91,45 @@
                         <tbody id="people-body"></tbody>
                     </table>
                 </div>
+            </section>
+
+            <!-- ===================== ADMIN: MANAGE DOCUMENTS ===================== -->
+            <section id="tab-shared" class="tab-panel hidden">
+                <div class="panel-head">
+                    <h2>Manage Documents</h2>
+                    <p>Upload reference files for all employees — handbooks, policies, blank forms, etc.
+                       They appear in everyone's Documents tab under “Company Documents”.</p>
+                </div>
+                <div class="video-editor">
+                    <h3>Upload a document</h3>
+                    <form id="shared-doc-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="shared-title">Title</label>
+                                <input type="text" id="shared-title" required placeholder="e.g. Employee Handbook 2026">
+                            </div>
+                            <div class="form-group form-group-small">
+                                <label for="shared-file">File</label>
+                                <input type="file" id="shared-file" required accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv" hidden>
+                                <label for="shared-file" class="btn btn-secondary upload-label" id="shared-file-label">
+                                    <i class="fas fa-file"></i> Choose file…
+                                </label>
+                                <span id="shared-file-name" class="upload-name" style="margin-left:8px;"></span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="shared-desc">Description (optional)</label>
+                            <textarea id="shared-desc" rows="2" placeholder="What is this document for?"></textarea>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary" id="shared-upload-btn">
+                                <i class="fas fa-upload"></i> Upload
+                            </button>
+                            <span id="shared-progress" class="upload-hint"></span>
+                        </div>
+                    </form>
+                </div>
+                <div id="shared-manage-list" class="cards-list"></div>
             </section>
 
             <!-- ===================== ADMIN: MANAGE VIDEOS ===================== -->
@@ -164,7 +208,7 @@
         }));
 
         // ---------- State ----------
-        let videos = [], completions = new Set(), assignments = [], uploads = [];
+        let videos = [], completions = new Set(), assignments = [], uploads = [], sharedDocs = [];
         const myCompletionsKey = () => completions;
 
         // ---------- Employee: training videos ----------
@@ -268,7 +312,138 @@
             assignments = data || [];
             renderDocuments();
             loadUploads();
+            loadSharedDocs();
         }
+
+        // ---------- Shared (admin-uploaded) documents ----------
+        async function loadSharedDocs() {
+            const { data, error } = await supabaseClient
+                .from('shared_documents')
+                .select('*').order('created_at', { ascending: false });
+            if (error) return showToast('Could not load company documents: ' + error.message, true);
+            sharedDocs = data || [];
+            renderSharedDocs();
+            if (isAdmin) renderSharedManage();
+        }
+
+        function fileIcon(mime, name) {
+            if (mime === 'application/pdf' || (name || '').toLowerCase().endsWith('.pdf')) return 'fa-file-pdf';
+            if ((mime || '').startsWith('image/')) return 'fa-file-image';
+            if (/(docx?|odt)$/i.test(name || '')) return 'fa-file-word';
+            if (/(xlsx?|csv)$/i.test(name || '')) return 'fa-file-excel';
+            if (/(pptx?)$/i.test(name || '')) return 'fa-file-powerpoint';
+            return 'fa-file-lines';
+        }
+
+        function renderSharedDocs() {
+            const wrap = document.getElementById('shared-docs-list');
+            if (!wrap) return;
+            wrap.innerHTML = sharedDocs.length ? '' :
+                '<p class="empty-note">No company documents have been shared yet.</p>';
+            sharedDocs.forEach(d => {
+                const card = document.createElement('div');
+                card.className = 'manage-card';
+                card.innerHTML = `
+                    <div class="manage-info" style="display:flex; gap:12px; align-items:flex-start;">
+                        <i class="fas ${fileIcon(d.mime_type, d.file_name)}" style="font-size:1.4rem; color:var(--light-blue); margin-top:3px;"></i>
+                        <div>
+                            <strong>${escapeHtml(d.title)}</strong>
+                            <p>${escapeHtml(d.description || '')}</p>
+                            <span class="manage-url">${escapeHtml(d.file_name)} · ${d.file_size ? (d.file_size / 1024 / 1024).toFixed(2) + ' MB' : ''} · added ${new Date(d.created_at).toLocaleDateString()}</span>
+                        </div>
+                    </div>
+                    <div class="manage-actions">
+                        <button class="btn btn-small btn-secondary view-shared-btn" data-path="${d.file_path}">
+                            <i class="fas fa-eye"></i> View</button>
+                        <button class="btn btn-small btn-muted dl-shared-btn" data-path="${d.file_path}" data-name="${escapeHtml(d.file_name)}">
+                            <i class="fas fa-download"></i> Download</button>
+                    </div>`;
+                wrap.appendChild(card);
+            });
+            wrap.querySelectorAll('.view-shared-btn').forEach(b =>
+                b.addEventListener('click', () => downloadCompletedPacket(b.dataset.path)));
+            wrap.querySelectorAll('.dl-shared-btn').forEach(b =>
+                b.addEventListener('click', async () => {
+                    const { data, error } = await supabaseClient.storage.from('documents').createSignedUrl(b.dataset.path, 300, { download: b.dataset.name });
+                    if (error || !data) return showToast('Could not download: ' + (error?.message || 'unknown error'), true);
+                    location.href = data.signedUrl;
+                }));
+        }
+
+        // ---------- Admin: manage shared documents ----------
+        function renderSharedManage() {
+            const wrap = document.getElementById('shared-manage-list');
+            if (!wrap) return;
+            wrap.innerHTML = sharedDocs.length ? '' :
+                '<p class="empty-note">Nothing uploaded yet — add your first document above.</p>';
+            sharedDocs.forEach(d => {
+                const card = document.createElement('div');
+                card.className = 'manage-card';
+                card.innerHTML = `
+                    <div class="manage-info">
+                        <strong>${escapeHtml(d.title)}</strong>
+                        <p>${escapeHtml(d.description || '')}</p>
+                        <span class="manage-url">${escapeHtml(d.file_name)}${d.file_size ? ' · ' + (d.file_size / 1024 / 1024).toFixed(2) + ' MB' : ''}</span>
+                    </div>
+                    <div class="manage-actions">
+                        <button class="btn btn-small btn-danger del-shared-btn" data-id="${d.id}" data-path="${d.file_path}">Delete</button>
+                    </div>`;
+                wrap.appendChild(card);
+            });
+            wrap.querySelectorAll('.del-shared-btn').forEach(b => b.addEventListener('click', async () => {
+                if (!confirm('Delete this document? Employees will no longer see it.')) return;
+                const { error: stoErr } = await supabaseClient.storage.from('documents').remove([b.dataset.path]);
+                if (stoErr) showToast('Could not delete file: ' + stoErr.message, true);
+                const { error: dbErr } = await supabaseClient.from('shared_documents').delete().eq('id', b.dataset.id);
+                if (dbErr) return showToast(dbErr.message, true);
+                showToast('Document deleted');
+                loadSharedDocs();
+            }));
+        }
+
+        // Shared doc upload form
+        const sharedFileInput = document.getElementById('shared-file');
+        sharedFileInput.addEventListener('change', () => {
+            document.getElementById('shared-file-name').textContent =
+                sharedFileInput.files.length ? sharedFileInput.files[0].name : '';
+        });
+        document.getElementById('shared-doc-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const file = sharedFileInput.files[0];
+            if (!file) return showToast('Choose a file first', true);
+            const btn = document.getElementById('shared-upload-btn');
+            const prog = document.getElementById('shared-progress');
+            btn.disabled = true;
+            prog.textContent = 'Uploading…';
+            try {
+                const safe = file.name.replace(/[^\w.\- ]/g, '_');
+                const path = `shared/${Date.now()}-${safe}`;
+                const { error: upErr } = await supabaseClient.storage
+                    .from('documents')
+                    .upload(path, file, { contentType: file.type || 'application/octet-stream' });
+                if (upErr) throw new Error(upErr.message);
+                const { error: dbErr } = await supabaseClient.from('shared_documents').insert({
+                    title: document.getElementById('shared-title').value.trim(),
+                    description: document.getElementById('shared-desc').value.trim(),
+                    file_name: file.name,
+                    file_path: path,
+                    mime_type: file.type || null,
+                    file_size: file.size,
+                    uploaded_by: me.id
+                });
+                if (dbErr) throw new Error(dbErr.message);
+                showToast('Document uploaded');
+                document.getElementById('shared-doc-form').reset();
+                document.getElementById('shared-file-name').textContent = '';
+                prog.textContent = '';
+                loadSharedDocs();
+            } catch (err) {
+                showToast(err.message, true);
+                prog.textContent = '';
+            } finally {
+                btn.disabled = false;
+            }
+        });
 
         async function loadUploads() {
             const { data, error } = await supabaseClient
@@ -588,11 +763,11 @@
         // ---------- Boot ----------
         loadTraining();
         loadDocuments();
-        if (isAdmin) { loadPeople(); loadManage(); }
+        if (isAdmin) { loadPeople(); loadManage(); loadSharedDocs(); }
 
         // Realtime-ish refresh when tab becomes visible again
         document.addEventListener('visibilitychange', () => {
-            if (!document.hidden) { loadTraining(); loadDocuments(); if (isAdmin) loadPeople(); }
+            if (!document.hidden) { loadTraining(); loadDocuments(); if (isAdmin) { loadPeople(); loadSharedDocs(); } }
         });
     })();
 

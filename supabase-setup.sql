@@ -65,6 +65,20 @@ create table if not exists public.document_uploads (
 
 create index if not exists document_uploads_user_idx on public.document_uploads (user_id, category);
 
+-- Shared reference documents uploaded by admins (handbooks, policies, blank
+-- forms...). Visible to all active users; writable by admins only.
+create table if not exists public.shared_documents (
+  id           uuid primary key default gen_random_uuid(),
+  title        text not null,
+  description  text not null default '',
+  file_name    text not null,
+  file_path    text not null,                      -- storage path in 'documents' bucket under shared/
+  mime_type    text,
+  file_size    bigint,
+  uploaded_by  uuid references auth.users(id) on delete set null,
+  created_at   timestamptz not null default now()
+);
+
 -- ----------------------------------------------------------------------------
 -- 2) TRIGGER: every new auth user automatically gets an (inactive) profile
 -- ----------------------------------------------------------------------------
@@ -117,6 +131,7 @@ alter table public.training_videos       enable row level security;
 alter table public.training_completions  enable row level security;
 alter table public.document_assignments  enable row level security;
 alter table public.document_uploads      enable row level security;
+alter table public.shared_documents      enable row level security;
 
 -- PROFILES -------------------------------------------------------------------
 drop policy if exists "profiles_select_self_or_admin" on public.profiles;
@@ -185,6 +200,25 @@ drop policy if exists "uploads_delete_own_or_admin" on public.document_uploads;
 create policy "uploads_delete_own_or_admin" on public.document_uploads
   for delete using (user_id = auth.uid() or public.is_admin());
 
+-- SHARED DOCUMENTS (admin-uploaded reference files) ---------------------------
+drop policy if exists "shared_docs_read_active" on public.shared_documents;
+create policy "shared_docs_read_active" on public.shared_documents
+  for select using (
+    exists (select 1 from public.profiles p where p.id = auth.uid() and p.active)
+  );
+
+drop policy if exists "shared_docs_admin_write" on public.shared_documents;
+create policy "shared_docs_admin_write" on public.shared_documents
+  for insert with check (public.is_admin());
+
+drop policy if exists "shared_docs_admin_update" on public.shared_documents;
+create policy "shared_docs_admin_update" on public.shared_documents
+  for update using (public.is_admin()) with check (public.is_admin());
+
+drop policy if exists "shared_docs_admin_delete" on public.shared_documents;
+create policy "shared_docs_admin_delete" on public.shared_documents
+  for delete using (public.is_admin());
+
 -- ----------------------------------------------------------------------------
 -- 4) STORAGE: PRIVATE BUCKET for completed PDFs
 --    Layout: documents/{user_id}/onboarding-packet-<timestamp>.pdf
@@ -218,7 +252,28 @@ create policy "docs_delete_own" on storage.objects
   for delete to authenticated
   using (
     bucket_id = 'documents'
-    and (storage.foldername(name))[1] = auth.uid()::text
+    and (
+      (storage.foldername(name))[1] = auth.uid()::text
+      or (name like 'shared/%' and public.is_admin())
+    )
+  );
+
+-- Shared reference files: all active users can read shared/, admins can upload
+drop policy if exists "docs_shared_read" on storage.objects;
+create policy "docs_shared_read" on storage.objects
+  for select to authenticated
+  using (
+    bucket_id = 'documents'
+    and name like 'shared/%'
+  );
+
+drop policy if exists "docs_shared_admin_upload" on storage.objects;
+create policy "docs_shared_admin_upload" on storage.objects
+  for insert to authenticated
+  with check (
+    bucket_id = 'documents'
+    and name like 'shared/%'
+    and public.is_admin()
   );
 
 -- ----------------------------------------------------------------------------
