@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Onboarding Packet | ACE Transitions</title>
+    <meta name="robots" content="noindex, nofollow">
+
+    <link rel="icon" type="image/png" href="TLCLogo.png">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/portal.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script src="js/config.js"></script>
+</head>
+<body class="portal-body">
+    <nav class="portal-nav">
+        <div class="portal-nav-inner">
+            <div class="portal-brand">
+                <img src="TLCLogo.png" alt="ACE Transitions">
+                <span id="brand-title">Onboarding Packet</span>
+            </div>
+            <div class="portal-user">
+                <span id="user-name">…</span>
+                <button id="signout-btn" class="btn btn-small btn-secondary">Sign Out</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="portal-main">
+        <div id="packet-loading" class="portal-loading"><i class="fas fa-spinner fa-spin"></i> Preparing your packet…</div>
+
+        <div id="packet-content" class="hidden">
+            <div class="panel-head">
+                <h2 id="packet-title">1099 Independent Contractor Onboarding Packet</h2>
+                <p>Complete the sections below. Your answers are written into the official packet PDF, saved to your
+                   private file area, and marked complete for you and the administrators. <strong>No other employees
+                   can see your packet.</strong> You can download a copy anytime from the portal.</p>
+            </div>
+
+            <div class="packet-progress">
+                <span id="packet-progress-label">Step 1 of 8</span>
+                <div class="progress-track"><div id="packet-progress-bar" class="progress-bar" style="width:12.5%"></div></div>
+            </div>
+
+            <form id="packet-form" autocomplete="on">
+                <div id="sections"></div>
+
+                <div class="submit-bar">
+                    <div id="submit-error" class="alert alert-error hidden"></div>
+                    <button type="submit" id="packet-submit" class="btn btn-primary btn-lg">
+                        <i class="fas fa-paper-plane"></i> Submit &amp; mark complete
+                    </button>
+                    <p class="auth-hint">By submitting, you confirm the information is true and complete. Your typed
+                       name on the certification page acts as your electronic signature.</p>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <script>
+    (async () => {
+        const me = await requireUser();
+        if (!me) return;
+        document.getElementById('packet-loading').classList.add('hidden');
+        document.getElementById('packet-content').classList.remove('hidden');
+        document.getElementById('user-name').textContent = me.full_name || me.email;
+        document.getElementById('signout-btn').addEventListener('click', portalSignOut);
+
+        // Which document are we filling? (?doc=master_application or default onboarding_packet)
+        const docKey = new URLSearchParams(location.search).get('doc') === 'master_application'
+            ? 'master_application' : 'onboarding_packet';
+        const DOC_LABEL = docKey === 'master_application'
+            ? 'ACE Transitions Master Application' : '1099 Independent Contractor Onboarding Packet';
+        document.getElementById('packet-title').textContent = DOC_LABEL;
+        document.getElementById('brand-title').textContent = docKey === 'master_application' ? 'Master Application' : 'Onboarding Packet';
+
+        // =====================================================================
+        // FORM SCHEMA — mirrors assets/onboarding-packet.pdf exactly
+        // f: PDF field name · t: type (text|check) · l: label
+        // =====================================================================
+        const SECTIONS = [
+        { title: '1 · Packet Intake', hint: 'Basic contact information.', fields: [
+            { f:'p1_full_legal_name', t:'text', l:'Full Legal Name', req:true, pre:() => me.full_name },
+            { f:'p1_preferred_name',  t:'text', l:'Preferred Name' },
+            { f:'p1_email', t:'text', l:'Email', req:true, pre:() => me.email },
+            { f:'p1_phone', t:'text', l:'Phone' },
+            { f:'p1_date',  t:'date', l:'Date', req:true },
+            { f:'p1_note_ack_1', t:'check', l:'I understand this packet is for 1099 independent contractor agents — it is NOT a W-2 employee onboarding packet.', req:true },
+            { f:'p1_note_ack_2', t:'check', l:'I will complete all applicable sections, attach required documents, and sign the final acknowledgment before a notary public.', req:true },
+            { f:'p1_note_ack_3', t:'check', l:'I understand the county on the notarial certificate is intentionally blank (may be executed in any NC county).', req:true },
+            { f:'p1_note_ack_4', t:'check', l:'I understand my completed packet must be returned through a secure individual channel — not a group email thread — because it contains private identifying information.', req:true },
+        ]},
+        { title: '2 · Candidate Profile & Role Routing', hint: 'Your address, the position you are applying for, and contractor details.', fields: [
+            { f:'p2_full_name', t:'text', l:'Full Legal Name', pre:() => me.full_name },
+            { f:'p2_pref_name', t:'text', l:'Preferred Name' },
+            { f:'p2_address',   t:'text', l:'Residential Address' },
+            { f:'p2_city',      t:'text', l:'City' },
+            { f:'p2_state',     t:'text', l:'State', pre:() => 'NC' },
+            { f:'p2_zip',       t:'text', l:'ZIP' },
+            { f:'p2_county',    t:'text', l:'County' },
+            { f:'p2_phone',     t:'text', l:'Phone' },
+            { f:'p2_email',     t:'text', l:'Email', pre:() => me.email },
+            { f:'p2_dob',       t:'date', l:'Date of Birth' },
+            { f:'p2_position',  t:'text', l:'Position / Role Applied For' },
+            { f:'_sub', t:'sub', l:'Service Area (select all that apply)' },
+            { f:'p2_area_peer',     t:'check', l:'Peer Support Services' },
+            { f:'p2_area_clinical', t:'check', l:'Behavioral Health / Clinical Services' },
+            { f:'p2_area_admin',    t:'check', l:'Program Administration' },
+            { f:'p2_area_qa',       t:'check', l:'Quality Assurance / Compliance' },
+            { f:'p2_area_intake',   t:'check', l:'Intake / Care Coordination' },
+            { f:'p2_area_other',    t:'text',  l:'Other:' },
+            { f:'_sub', t:'sub', l:'Legal Engaging Entity' },
+            { f:'p2_entity_tlc', t:'check', l:'Transitions Legacy Center, Inc. (TLC)' },
+            { f:'p2_entity_ace', t:'check', l:'Alase Center for Enrichment II, Inc. (ACE)' },
+            { f:'p2_entity_tbd', t:'check', l:'To be assigned based on position, credentialing, payer enrollment, and contract routing' },
+            { f:'p2_business_name', t:'text', l:'Business / DBA Name (if applicable)' },
+            { f:'_sub', t:'sub', l:'Tax Classification' },
+            { f:'p2_tax_ind',  t:'check', l:'Individual / Sole Proprietor' },
+            { f:'p2_tax_llc',  t:'check', l:'LLC' },
+            { f:'p2_tax_corp', t:'check', l:'Corporation' },
+            { f:'p2_tax_other',t:'check', l:'Other' },
+            { f:'_sub', t:'sub', l:'W-9 Provided' },
+            { f:'p2_w9_yes', t:'check', l:'Yes' }, { f:'p2_w9_no', t:'check', l:'No' },
+            { f:'_sub', t:'sub', l:'Professional Liability Insurance' },
+            { f:'p2_ins_yes', t:'check', l:'Yes' }, { f:'p2_ins_no', t:'check', l:'No' }, { f:'p2_ins_na', t:'check', l:'N/A' },
+        ]},
+        { title: '3 · Required Documents & Credentials', hint: 'Check every item you are submitting, and list your credentials.', fields: [
+            { f:'_sub', t:'sub', l:'Candidate Submission Checklist' },
+            { f:'p3_completed_app',       t:'check', l:'Completed ACE Transitions application' },
+            { f:'p3_resume',              t:'check', l:'Current résumé or professional profile' },
+            { f:'p3_w9',                  t:'check', l:'Completed IRS Form W-9' },
+            { f:'p3_photo_id',            t:'check', l:'Government-issued photo identification' },
+            { f:'p3_background_release',  t:'check', l:'Background check authorization (if applicable)' },
+            { f:'p3_references',          t:'check', l:'Professional references' },
+            { f:'p3_credential_copy',     t:'check', l:'Copy of applicable license, certification, or credential' },
+            { f:'p3_npi',                 t:'check', l:'NPI confirmation (if applicable)' },
+            { f:'p3_insurance',           t:'check', l:'Professional liability insurance declaration page (if applicable)' },
+            { f:'p3_cpr',                 t:'check', l:'CPR / First Aid certification (if required for role)' },
+            { f:'p3_training',            t:'check', l:'Training certificates (peer support, clinical, compliance, community-based work)' },
+            { f:'p3_direct_deposit',      t:'check', l:'ACH/direct deposit authorization or payment instructions (if requested)' },
+            { f:'p3_primary_cred', t:'text', l:'Primary Credential / License' },
+            { f:'p3_cred_num',     t:'text', l:'Credential #' },
+            { f:'p3_issuing',      t:'text', l:'Issuing State / Agency' },
+            { f:'p3_exp',          t:'date', l:'Expiration Date' },
+            { f:'_sub', t:'sub', l:'NCTracks Status' },
+            { f:'p3_nctracks_yes',     t:'check', l:'Active' },
+            { f:'p3_nctracks_pending', t:'check', l:'Pending' },
+            { f:'p3_nctracks_na',      t:'check', l:'N/A' },
+            { f:'p3_nccpss', t:'text', l:'NCCPSS #' },
+            { f:'_sub', t:'sub', l:'Medicaid Standard Plan or payer participation (if applicable)' },
+            { f:'p3_plan_0', t:'check', l:'WellCare / Legacy' },
+            { f:'p3_plan_1', t:'check', l:'UnitedHealthcare Community Plan' },
+            { f:'p3_plan_2', t:'check', l:'Healthy Blue' },
+            { f:'p3_plan_3', t:'check', l:'AmeriHealth Caritas' },
+            { f:'p3_plan_4', t:'check', l:'Carolina Complete Health' },
+        ]},
+        { title: '4 · 1099 Status Acknowledgment', hint: 'Type your initials for each statement.', fields: [
+            { f:'p4_init_1', t:'text', l:'Initials', wide:true, stmt:'1. I acknowledge that this packet is intended for onboarding as an independent contractor agent and does not create W-2 employee status unless a separate written employment agreement states otherwise.', req:true },
+            { f:'p4_init_2', t:'text', l:'Initials', wide:true, stmt:'2. I understand that independent contractor classification is governed by the actual service relationship, including control, independence, method of payment, tax responsibility, professional discretion, credentialing, and business operations.', req:true },
+            { f:'p4_init_3', t:'text', l:'Initials', wide:true, stmt:'3. I understand the legal engaging entity may be Transitions Legacy Center, Inc. (TLC), Alase Center for Enrichment II, Inc. (ACE), or another written assignment based on role, payer credentialing, and contract routing.', req:true },
+            { f:'p4_init_4', t:'text', l:'Initials', wide:true, stmt:'4. I am responsible for maintaining any credential, license, certification, professional insurance, business registration, and tax records required for the assigned services.', req:true },
+            { f:'p4_init_5', t:'text', l:'Initials', wide:true, stmt:'5. I understand ACE Transitions may decline onboarding, suspend service assignment, or terminate access if required documentation, background review, credential verification, or payer requirements are incomplete or unsatisfactory.', req:true },
+            { f:'p4_tax_init_1', t:'text', l:'Initials', wide:true, stmt:'Tax 1. I am responsible for federal, state, and local tax obligations arising from contractor compensation, subject to the written service agreement and any approved accounting/tax-remittance process.', req:true },
+            { f:'p4_tax_init_2', t:'text', l:'Initials', wide:true, stmt:'Tax 2. I must provide a completed Form W-9 or other required tax documentation before payment processing when required by the legal engaging entity.', req:true },
+            { f:'p4_tax_init_3', t:'text', l:'Initials', wide:true, stmt:'Tax 3. No payroll withholding, unemployment withholding, employee benefit contribution, or workers compensation benefit is created by this onboarding packet unless a separate written employment agreement provides otherwise.', req:true },
+        ]},
+        { title: '5 · Confidentiality, HIPAA & Privacy', hint: 'Type your initials for each statement, then check the secure-communication agreements.', fields: [
+            { f:'p5_init_1', t:'text', l:'Initials', wide:true, stmt:'1. I will protect client, applicant, personnel, clinical, billing, Medicaid, referral, and agency information received through ACE Transitions, TLC, ACE, or any affiliated service process.', req:true },
+            { f:'p5_init_2', t:'text', l:'Initials', wide:true, stmt:'2. I will not access, copy, photograph, download, disclose, discuss, post, or transmit protected information unless necessary for assigned duties and authorized by policy, law, or written direction.', req:true },
+            { f:'p5_init_3', t:'text', l:'Initials', wide:true, stmt:'3. I will comply with HIPAA/HITECH, 42 C.F.R. Part 2 when substance-use-disorder information is involved, applicable North Carolina confidentiality requirements, and all agency privacy policies.', req:true },
+            { f:'p5_init_4', t:'text', l:'Initials', wide:true, stmt:'4. I will immediately report any suspected privacy incident, lost device, misdirected email, unauthorized disclosure, credential compromise, or improper access to the designated program contact.', req:true },
+            { f:'p5_init_5', t:'text', l:'Initials', wide:true, stmt:'5. I understand that confidentiality obligations continue after my service relationship ends.', req:true },
+            { f:'_sub', t:'sub', l:'Secure Communication Agreement' },
+            { f:'p5_sec_0', t:'check', l:'I will use approved communication channels.' },
+            { f:'p5_sec_1', t:'check', l:'I will not send client SSNs or clinical records by unsecured group email.' },
+            { f:'p5_sec_2', t:'check', l:'I will secure passwords and devices.' },
+            { f:'p5_sec_3', t:'check', l:'I will return or delete protected information upon request.' },
+            { f:'p5_privacy_notes', t:'area', l:'Additional privacy notes or restrictions' },
+        ]},
+        { title: '6 · Medicaid Documentation & Billing Compliance', hint: 'Type your initials for each statement and select the service types you are ready to provide.', fields: [
+            { f:'p6_init_1', t:'text', l:'Initials', wide:true, stmt:'1. I will document services accurately, timely, and only for services actually rendered by me or under my assigned responsibility.', req:true },
+            { f:'p6_init_2', t:'text', l:'Initials', wide:true, stmt:'2. I will not create, alter, backdate, copy-forward, or submit documentation that misrepresents the service, duration, location, participant, provider, medical necessity, authorization status, or clinical content.', req:true },
+            { f:'p6_init_3', t:'text', l:'Initials', wide:true, stmt:'3. I understand services may require payer authorization, reauthorization, active credentials, active service orders, treatment plans, supervision, and supporting documentation before claims are submitted.', req:true },
+            { f:'p6_init_4', t:'text', l:'Initials', wide:true, stmt:'4. I will cooperate with claim audits, chart reviews, corrective action, payer inquiries, overpayment review, and Medicaid compliance investigations involving services assigned to me.', req:true },
+            { f:'p6_init_5', t:'text', l:'Initials', wide:true, stmt:'5. I will report suspected fraud, waste, abuse, billing irregularity, documentation concern, boundary violation, or conflict of interest through the designated reporting channel.', req:true },
+            { f:'_sub', t:'sub', l:'Service-Type Readiness' },
+            { f:'p6_role_0', t:'check', l:'Peer Support Services — H0038' },
+            { f:'p6_role_1', t:'check', l:'Psychiatric Diagnostic Evaluation — 90791' },
+            { f:'p6_role_2', t:'check', l:'Psychotherapy — 90837' },
+            { f:'p6_role_3', t:'check', l:'Quality Assurance / Compliance' },
+            { f:'p6_role_4', t:'check', l:'Intake / Administrative Services' },
+            { f:'p6_supervisor', t:'text', l:'Assigned supervisor / reviewer (if known)' },
+        ]},
+        { title: '7 · Technology, EHR Access & Professional Conduct', hint: 'Type your initials for each statement and acknowledge the conduct standards.', fields: [
+            { f:'p7_init_1', t:'text', l:'Initials', wide:true, stmt:'1. I will use assigned EHR, scheduling, email, cloud-storage, telehealth, phone, or communication systems only for authorized program purposes.', req:true },
+            { f:'p7_init_2', t:'text', l:'Initials', wide:true, stmt:'2. I will not share login credentials, bypass access controls, use another person\'s account, or permit unauthorized users to view client or agency information.', req:true },
+            { f:'p7_init_3', t:'text', l:'Initials', wide:true, stmt:'3. I will maintain current contact information and promptly return equipment, records, keys, documents, access tokens, and agency property when requested.', req:true },
+            { f:'p7_init_4', t:'text', l:'Initials', wide:true, stmt:'4. I understand access may be suspended immediately for security, privacy, credentialing, billing, performance, or compliance concerns.', req:true },
+            { f:'_sub', t:'sub', l:'Professional Conduct and Boundaries (check each to acknowledge)' },
+            { f:'p7_conduct_0', t:'check', l:'Client boundaries and ethical conduct' },
+            { f:'p7_conduct_1', t:'check', l:'Conflict of interest disclosure' },
+            { f:'p7_conduct_2', t:'check', l:'Mandatory reporting compliance' },
+            { f:'p7_conduct_3', t:'check', l:'No unauthorized client transport' },
+            { f:'p7_conduct_4', t:'check', l:'No personal financial relationship with clients' },
+            { f:'p7_conduct_5', t:'check', l:'No social media contact with clients unless authorized by policy' },
+        ]},
+        { title: '8 · Contractor Certification & Signature', hint: 'The final certification. The notary section of the PDF is left blank for completion by a notary public.', fields: [
+            { f:'p9_candidate_name', t:'text', l:'Candidate Full Legal Name', req:true, pre:() => me.full_name },
+            { f:'p9_signature', t:'text', l:'Signature (type your full legal name)', req:true, sig:true },
+            { f:'p9_date', t:'date', l:'Date', req:true },
+            { f:'p9_county_signed', t:'text', l:'County where signed' },
+            { f:'p9_state_signed',  t:'text', l:'State', pre:() => 'North Carolina' },
+        ]},
+        ];
+
+        // Master Application schema (assets/master-application.pdf — 1 page, 53 fields)
+        const MASTER_APP_SECTIONS = [
+        { title: '1 · Position & Availability', hint: 'What are you applying for?', fields: [
+            { f:'position_applied_for', t:'text', l:'Position Applied For', req:true },
+            { f:'_sub', t:'sub', l:'Service Area (select all that apply)' },
+            { f:'service_peer_support', t:'check', l:'Peer Support Services' },
+            { f:'service_behavioral_clinical', t:'check', l:'Behavioral Health / Clinical Services' },
+            { f:'service_program_administration', t:'check', l:'Program Administration' },
+            { f:'service_quality_compliance', t:'check', l:'Quality Assurance / Compliance' },
+            { f:'service_other', t:'check', l:'Other' },
+            { f:'service_other_detail', t:'text', l:'Other (details)' },
+            { f:'_sub', t:'sub', l:'Position Type' },
+            { f:'position_type_employee', t:'check', l:'Employee (W-2)' },
+            { f:'position_type_independent_contractor', t:'check', l:'Independent Contractor (1099)' },
+            { f:'position_type_tbd', t:'check', l:'To be determined' },
+            { f:'_sub', t:'sub', l:'Legal Engaging Entity' },
+            { f:'legal_entity_tlc', t:'check', l:'Transitions Legacy Center, Inc. (TLC)' },
+            { f:'legal_entity_ace', t:'check', l:'Alase Center for Enrichment II, Inc. (ACE)' },
+            { f:'legal_entity_tbd', t:'check', l:'To be assigned' },
+            { f:'_sub', t:'sub', l:'Availability' },
+            { f:'availability_full_time', t:'check', l:'Full Time' },
+            { f:'availability_part_time', t:'check', l:'Part Time' },
+            { f:'availability_contract', t:'check', l:'Contract' },
+            { f:'availability_flexible_prn', t:'check', l:'Flexible / PRN' },
+            { f:'availability_other', t:'check', l:'Other' },
+            { f:'availability_other_detail', t:'text', l:'Other (details)' },
+        ]},
+        { title: '2 · Personal Information', hint: 'Contact and identity details', fields: [
+            { f:'full_legal_name', t:'text', l:'Full Legal Name', req:true, pre:() => me.full_name },
+            { f:'preferred_name', t:'text', l:'Preferred Name' },
+            { f:'street_address', t:'text', l:'Street Address' },
+            { f:'city', t:'text', l:'City' },
+            { f:'state', t:'text', l:'State', pre:() => 'NC' },
+            { f:'zip_code', t:'text', l:'ZIP' },
+            { f:'phone', t:'text', l:'Phone' },
+            { f:'email', t:'text', l:'Email', req:true, pre:() => me.email },
+            { f:'social_security_number', t:'text', l:'Social Security Number' },
+            { f:'date_of_birth', t:'date', l:'Date of Birth' },
+            { f:'_sub', t:'sub', l:'Sex at Birth' },
+            { f:'sex_at_birth_male', t:'check', l:'Male' },
+            { f:'sex_at_birth_female', t:'check', l:'Female' },
+            { f:'_sub', t:'sub', l:'Emergency Contact' },
+            { f:'emergency_contact_name', t:'text', l:'Name' },
+            { f:'emergency_contact_relationship', t:'text', l:'Relationship' },
+            { f:'emergency_contact_phone', t:'text', l:'Phone' },
+        ]},
+        { title: '3 · Licenses & Credentials', hint: 'Certifications and payer enrollment status', fields: [
+            { f:'relevant_licenses_certifications', t:'text', l:'Relevant Licenses / Certifications' },
+            { f:'license_certification_number', t:'text', l:'License / Certification #' },
+            { f:'license_expiration_date', t:'date', l:'Expiration Date' },
+            { f:'_sub', t:'sub', l:'NCTracks' },
+            { f:'nctracks_yes', t:'check', l:'Yes' },
+            { f:'nctracks_no', t:'check', l:'No' },
+            { f:'_sub', t:'sub', l:'Medicaid Standard Plans' },
+            { f:'medicaid_standard_plans_yes', t:'check', l:'Yes' },
+            { f:'medicaid_standard_plans_no', t:'check', l:'No' },
+        ]},
+        { title: '4 · Education', hint: 'Up to three schools', fields: [
+            { f:'education_1_school', t:'text', l:'School 1 — School' },
+            { f:'education_1_degree', t:'text', l:'School 1 — Degree' },
+            { f:'education_1_city_state', t:'text', l:'School 1 — City, State' },
+            { f:'education_1_year_completed', t:'text', l:'School 1 — Year Completed' },
+            { f:'education_2_school', t:'text', l:'School 2 — School' },
+            { f:'education_2_degree', t:'text', l:'School 2 — Degree' },
+            { f:'education_2_city_state', t:'text', l:'School 2 — City, State' },
+            { f:'education_2_year_completed', t:'text', l:'School 2 — Year Completed' },
+            { f:'education_3_school', t:'text', l:'School 3 — School' },
+            { f:'education_3_degree', t:'text', l:'School 3 — Degree' },
+            { f:'education_3_city_state', t:'text', l:'School 3 — City, State' },
+            { f:'education_3_year_completed', t:'text', l:'School 3 — Year Completed' },
+        ]},
+        ];
+
+        const ACTIVE_SECTIONS = docKey === 'master_application' ? MASTER_APP_SECTIONS : SECTIONS;
+        const PDF_PATH = docKey === 'master_application' ? 'assets/master-application.pdf' : 'assets/onboarding-packet.pdf';
+
+        // Auto-set fields the employee shouldn't touch:
+        const AUTO_FILL = { p7_return_to: 'info@acetransitions.org', p7_submit_portal: true };
+
+        // ---------------------------------------------------------------------
+        // Render the form
+        // ---------------------------------------------------------------------
+        const sectionsEl = document.getElementById('sections');
+        ACTIVE_SECTIONS.forEach((sec, i) => {
+            const det = document.createElement('details');
+            det.className = 'packet-section';
+            det.open = i === 0;
+            det.innerHTML = `<summary><span class="section-title">${sec.title}</span>
+                <span class="section-hint">${sec.hint}</span></summary>
+                <div class="section-body"></div>`;
+            const body = det.querySelector('.section-body');
+            sec.fields.forEach(fl => {
+                if (fl.t === 'sub') {
+                    body.insertAdjacentHTML('beforeend', `<h4 class="field-sub">${fl.l}</h4>`);
+                    return;
+                }
+                if (fl.stmt) body.insertAdjacentHTML('beforeend', `<p class="stmt">${fl.stmt}</p>`);
+                const row = document.createElement('div');
+                row.className = 'form-group' + (fl.wide || fl.t === 'area' ? ' form-wide' : '') + (fl.t === 'check' ? ' form-check' : '');
+                if (fl.t === 'check') {
+                    row.innerHTML = `<label class="check-label"><input type="checkbox" data-pdf="${fl.f}">
+                        <span>${fl.l}${fl.req ? ' <em class="req">*</em>' : ''}</span></label>`;
+                } else if (fl.t === 'area') {
+                    row.innerHTML = `<label for="pf_${fl.f}">${fl.l}</label>
+                        <textarea id="pf_${fl.f}" data-pdf="${fl.f}" rows="3"></textarea>`;
+                } else {
+                    const type = fl.t === 'date' ? 'date' : 'text';
+                    row.innerHTML = `<label for="pf_${fl.f}">${fl.l}${fl.req ? ' <em class="req">*</em>' : ''}</label>
+                        <input type="${type}" id="pf_${fl.f}" data-pdf="${fl.f}">`;
+                }
+                body.appendChild(row);
+                if (fl.pre) {
+                    const v = fl.pre();
+                    if (v) {
+                        const el = row.querySelector('input,textarea');
+                        el.value = v;
+                        if (fl.t === 'date') el.value = v;
+                    }
+                }
+            });
+            sectionsEl.appendChild(det);
+        });
+
+        // Defaults (only exist on the onboarding packet form)
+        const today = new Date().toLocaleDateString('en-US');
+        if (document.querySelector('[data-pdf="p1_date"]'))
+            document.querySelector('[data-pdf="p1_date"]').value = today;
+        if (document.querySelector('[data-pdf="p9_date"]'))
+            document.querySelector('[data-pdf="p9_date"]').value = today;
+
+        // Draft autosave (localStorage) + restore
+        const DRAFT_KEY = 'ace_packet_draft_v1_' + docKey;
+        const inputs = () => document.querySelectorAll('#packet-form [data-pdf]');
+        try {
+            const draft = JSON.parse(localStorage.getItem(DRAFT_KEY) || '{}');
+            inputs().forEach(el => {
+                if (el.type === 'checkbox') { if (el.dataset.pdf in draft) el.checked = !!draft[el.dataset.pdf]; }
+                else if (!el.value && el.dataset.pdf in draft) el.value = draft[el.dataset.pdf];
+            });
+        } catch (_) {}
+        document.getElementById('packet-form').addEventListener('input', () => {
+            const d = {};
+            inputs().forEach(el => d[el.dataset.pdf] = el.type === 'checkbox' ? el.checked : el.value);
+            localStorage.setItem(DRAFT_KEY, JSON.stringify(d));
+            updateProgress();
+        });
+
+        // Section progress indicator
+        function updateProgress() {
+            let done = 0;
+            ACTIVE_SECTIONS.forEach((sec, i) => {
+                const det = sectionsEl.children[i];
+                const any = [...det.querySelectorAll('[data-pdf]')].some(el =>
+                    el.type === 'checkbox' ? el.checked : el.value.trim() !== '');
+                if (any) done = i + 1;
+            });
+            const pct = Math.max(12.5, Math.round(100 * (done || 1) / ACTIVE_SECTIONS.length));
+            document.getElementById('packet-progress-label').textContent = `Step ${done || 1} of ${ACTIVE_SECTIONS.length}`;
+            document.getElementById('packet-progress-bar').style.width = pct + '%';
+        }
+        updateProgress();
+
+        // ---------------------------------------------------------------------
+        // Submit: fill the PDF → upload privately → mark complete
+        // ---------------------------------------------------------------------
+        document.getElementById('packet-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const errBox = document.getElementById('submit-error');
+            errBox.classList.add('hidden');
+
+            // Validate required fields
+            const missing = [];
+            ACTIVE_SECTIONS.forEach(sec => sec.fields.forEach(fl => {
+                if (!fl.req) return;
+                const el = document.querySelector(`[data-pdf="${fl.f}"]`);
+                const bad = el.type === 'checkbox' ? !el.checked : el.value.trim() === '';
+                if (bad) missing.push(fl.l);
+            }));
+            if (missing.length) {
+                errBox.innerHTML = '<strong>Please complete the required fields:</strong><br>' +
+                    missing.map(m => '• ' + escapeHtml(m)).join('<br>');
+                errBox.classList.remove('hidden');
+                errBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return;
+            }
+
+            const btn = document.getElementById('packet-submit');
+            btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating your PDF…';
+            try {
+                // 1) Fetch and fill the official PDF
+                const bytes = await (await fetch(PDF_PATH)).arrayBuffer();
+                const pdf = await PDFLib.PDFDocument.load(bytes);
+                const form = pdf.getForm();
+                const helv = await pdf.embedFont(PDFLib.StandardFonts.Helvetica);
+
+                const setValue = (name, value) => {
+                    try {
+                        const f = form.getTextField(name);
+                        if (value) f.setText(String(value));
+                    } catch (_) { /* field missing in PDF — ignore */ }
+                };
+                const setCheck = (name, on) => {
+                    try {
+                        const c = form.getCheckBox(name);
+                        on ? c.check() : c.uncheck();
+                    } catch (_) {}
+                };
+
+                inputs().forEach(el => {
+                    if (el.type === 'checkbox') setCheck(el.dataset.pdf, el.checked);
+                    else if (el.type === 'date' && el.value) {
+                        const [y, m, d] = el.value.split('-');
+                        setValue(el.dataset.pdf, `${m}/${d}/${y}`);
+                    }
+                    else setValue(el.dataset.pdf, el.value.trim());
+                });
+
+                // Auto-fill submission routing + hidden fields (onboarding packet only)
+                if (docKey === 'onboarding_packet') {
+                    setValue('p7_return_to', AUTO_FILL.p7_return_to);
+                    setCheck('p7_submit_portal', AUTO_FILL.p7_submit_portal);
+                    setCheck('p7_submit_secure_email', false);
+                    setCheck('p7_submit_in_person', false);
+                    setCheck('p7_submit_other', false);
+                }
+
+                form.updateFieldAppearances(helv);
+
+                const outBytes = await pdf.save();
+                const file = new File([outBytes],
+                    `onboarding-packet-${me.email.replace(/[^a-z0-9]/gi, '-')}-${Date.now()}.pdf`,
+                    { type: 'application/pdf' });
+
+                // 2) Upload to the employee's PRIVATE folder in storage
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading securely…';
+                const path = `${me.id}/${docKey}-${Date.now()}.pdf`;
+                const { error: upErr } = await supabaseClient.storage
+                    .from('documents').upload(path, file, { contentType: 'application/pdf', upsert: false });
+                if (upErr) throw new Error('Upload failed: ' + upErr.message);
+
+                // 3) Mark the assignment complete (visible to employee + admins only)
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Marking complete…';
+                const now = new Date().toISOString();
+                const { error: dbErr } = await supabaseClient
+                    .from('document_assignments')
+                    .upsert({
+                        user_id: me.id,
+                        doc_key: docKey,
+                        status: 'complete',
+                        file_path: path,
+                        completed_at: now,
+                        updated_at: now
+                    }, { onConflict: 'user_id,doc_key' });
+                if (dbErr) throw new Error('Could not mark complete: ' + dbErr.message);
+
+                localStorage.removeItem(DRAFT_KEY);
+                location.href = 'portal.html?submitted=1';
+            } catch (err) {
+                errBox.textContent = err.message || String(err);
+                errBox.classList.remove('hidden');
+                errBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit & mark complete';
+            }
+        });
+    })();
+
+    function escapeHtml(s) {
+        return String(s ?? '').replace(/[&<>"']/g, c =>
+            ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+    </script>
+</body>
+</html>

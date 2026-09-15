@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Master Application | ACE Transitions</title>
+    <meta name="robots" content="noindex, nofollow">
+
+    <link rel="icon" type="image/png" href="TLCLogo.png">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/portal.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+</head>
+<body class="portal-body">
+    <nav class="portal-nav">
+        <div class="portal-nav-inner">
+            <div class="portal-brand">
+                <img src="TLCLogo.png" alt="ACE Transitions">
+                <span>Master Application — Fill &amp; Download</span>
+            </div>
+            <div class="portal-user">
+                <a class="btn btn-small btn-secondary" href="portal.html">Portal</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="portal-main">
+        <div class="panel-head">
+            <h2>ACE Transitions Master Application</h2>
+            <p>Fill the fields below and click <strong>Fill &amp; Download PDF</strong>. Your answers are written into
+               the official application PDF (same format, same pages) and downloaded to your computer.</p>
+        </div>
+
+        <form id="app-form" autocomplete="on">
+            <!-- Position -->
+            <details class="packet-section" open>
+                <summary><span class="section-title">Position &amp; Availability</span>
+                    <span class="section-hint">What are you applying for?</span></summary>
+                <div class="section-body">
+                    <div class="form-group">
+                        <label for="af_position_applied_for">Position Applied For</label>
+                        <input type="text" id="af_position_applied_for" data-pdf="position_applied_for">
+                    </div>
+                    <h4 class="field-sub">Service Area (select all that apply)</h4>
+                    <div class="form-group form-check"><label class="check-label"><input type="checkbox" data-pdf="service_peer_support"><span>Peer Support Services</span></label></div>
+                    <div class="form-group form-check"><label class="check-label"><input type="checkbox" data-pdf="service_behavioral_clinical"><span>Behavioral Health / Clinical Services</span></label></div>
+                    <div class="form-group form-check"><label class="check-label"><input type="checkbox" data-pdf="service_program_administration"><span>Program Administration</span></label></div>
+                    <div class="form-group form-check"><label class="check-label"><input type="checkbox" data-pdf="service_quality_compliance"><span>Quality Assurance / Compliance</span></label></div>
+                    <div class="form-group form-check"><label class="check-label"><input type="checkbox" data-pdf="service_other"><span>Other</span></label></div>
+                    <div class="form-group"><label for="af_service_other_detail">Other (details)</label>
+                        <input type="text" id="af_service_other_detail" data-pdf="service_other_detail"></div>
+
+                    <h4 class="field-sub">Position Type</h4>
+                    <div class="form-group form-check"><label class="check-label"><input type="checkbox" data-pdf="position_type_employee"><span>Employee (W-2)</span></label></div>
+                    <div class="form-group form-check"><label class="check-label"><input type="checkbox" data-pdf="position_type_independent_contractor"><span>Independent Contractor (1099)</span></label></div>
+                    <div class="form-group form-check"><label class="check-label"><input type="checkbox" data-pdf="position_type_tbd"><span>To be determined</span></label></div>
+
+                    <h4 class="field-sub">Legal Engaging Entity</h4>
+                    <div class="form-group form-check"><label class="check-label"><input type="checkbox" data-pdf="legal_entity_tlc"><span>Transitions Legacy Center, Inc. (TLC)</span></label></div>
+                    <div class="form-group form-check"><label class="check-label"><input type="checkbox" data-pdf="legal_entity_ace"><span>Alase Center for Enrichment II, Inc. (ACE)</span></label></div>
+                    <div class="form-group form-check"><label class="check-label"><input type="checkbox" data-pdf="legal_entity_tbd"><span>To be assigned</span></label></div>
+
+                    <h4 class="field-sub">Availability</h4>
+                    <div class="form-group form-check"><label class="check-label"><input type="checkbox" data-pdf="availability_full_time"><span>Full Time</span></label></div>
+                    <div class="form-group form-check"><label class="check-label"><input type="checkbox" data-pdf="availability_part_time"><span>Part Time</span></label></div>
+                    <div class="form-group form-check"><label class="check-label"><input type="checkbox" data-pdf="availability_contract"><span>Contract</span></label></div>
+                    <div class="form-group form-check"><label class="check-label"><input type="checkbox" data-pdf="availability_flexible_prn"><span>Flexible / PRN</span></label></div>
+                    <div class="form-group form-check"><label class="check-label"><input type="checkbox" data-pdf="availability_other"><span>Other</span></label></div>
+                    <div class="form-group"><label for="af_availability_other_detail">Other (details)</label>
+                        <input type="text" id="af_availability_other_detail" data-pdf="availability_other_detail"></div>
+                </div>
+            </details>
+
+            <!-- Personal -->
+            <details class="packet-section">
+                <summary><span class="section-title">Personal Information</span>
+                    <span class="section-hint">Contact and identity details</span></summary>
+                <div class="section-body">
+                    <div class="form-row">
+                        <div class="form-group"><label for="af_full_legal_name">Full Legal Name</label>
+                            <input type="text" id="af_full_legal_name" data-pdf="full_legal_name"></div>
+                        <div class="form-group"><label for="af_preferred_name">Preferred Name</label>
+                            <input type="text" id="af_preferred_name" data-pdf="preferred_name"></div>
+                    </div>
+                    <div class="form-group"><label for="af_street_address">Street Address</label>
+                        <input type="text" id="af_street_address" data-pdf="street_address"></div>
+                    <div class="form-row">
+                        <div class="form-group"><label for="af_city">City</label><input type="text" id="af_city" data-pdf="city"></div>
+                        <div class="form-group"><label for="af_state">State</label><input type="text" id="af_state" data-pdf="state" value="NC"></div>
+                        <div class="form-group"><label for="af_zip_code">ZIP</label><input type="text" id="af_zip_code" data-pdf="zip_code"></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group"><label for="af_phone">Phone</label><input type="tel" id="af_phone" data-pdf="phone"></div>
+                        <div class="form-group"><label for="af_email">Email</label><input type="email" id="af_email" data-pdf="email"></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group"><label for="af_social_security_number">Social Security Number</label>
+                            <input type="text" id="af_social_security_number" data-pdf="social_security_number" placeholder="123-45-6789"></div>
+                        <div class="form-group"><label for="af_date_of_birth">Date of Birth</label>
+                            <input type="date" id="af_date_of_birth" data-pdf="date_of_birth"></div>
+                    </div>
+                    <h4 class="field-sub">Sex at Birth</h4>
+                    <div class="form-group form-check"><label class="check-label"><input type="checkbox" data-pdf="sex_at_birth_male"><span>Male</span></label></div>
+                    <div class="form-group form-check"><label class="check-label"><input type="checkbox" data-pdf="sex_at_birth_female"><span>Female</span></label></div>
+
+                    <h4 class="field-sub">Emergency Contact</h4>
+                    <div class="form-row">
+                        <div class="form-group"><label for="af_emergency_contact_name">Name</label>
+                            <input type="text" id="af_emergency_contact_name" data-pdf="emergency_contact_name"></div>
+                        <div class="form-group"><label for="af_emergency_contact_relationship">Relationship</label>
+                            <input type="text" id="af_emergency_contact_relationship" data-pdf="emergency_contact_relationship"></div>
+                        <div class="form-group"><label for="af_emergency_contact_phone">Phone</label>
+                            <input type="tel" id="af_emergency_contact_phone" data-pdf="emergency_contact_phone"></div>
+                    </div>
+                </div>
+            </details>
+
+            <!-- Credentials -->
+            <details class="packet-section">
+                <summary><span class="section-title">Licenses &amp; Credentials</span>
+                    <span class="section-hint">Certifications and payer enrollment status</span></summary>
+                <div class="section-body">
+                    <div class="form-group"><label for="af_relevant_licenses_certifications">Relevant Licenses / Certifications</label>
+                        <input type="text" id="af_relevant_licenses_certifications" data-pdf="relevant_licenses_certifications"></div>
+                    <div class="form-row">
+                        <div class="form-group"><label for="af_license_certification_number">License / Certification #</label>
+                            <input type="text" id="af_license_certification_number" data-pdf="license_certification_number"></div>
+                        <div class="form-group"><label for="af_license_expiration_date">Expiration Date</label>
+                            <input type="date" id="af_license_expiration_date" data-pdf="license_expiration_date"></div>
+                    </div>
+                    <h4 class="field-sub">NCTracks</h4>
+                    <div class="form-group form-check"><label class="check-label"><input type="checkbox" data-pdf="nctracks_yes"><span>Yes</span></label></div>
+                    <div class="form-group form-check"><label class="check-label"><input type="checkbox" data-pdf="nctracks_no"><span>No</span></label></div>
+                    <h4 class="field-sub">Medicaid Standard Plans</h4>
+                    <div class="form-group form-check"><label class="check-label"><input type="checkbox" data-pdf="medicaid_standard_plans_yes"><span>Yes</span></label></div>
+                    <div class="form-group form-check"><label class="check-label"><input type="checkbox" data-pdf="medicaid_standard_plans_no"><span>No</span></label></div>
+                </div>
+            </details>
+
+            <!-- Education -->
+            <details class="packet-section">
+                <summary><span class="section-title">Education</span>
+                    <span class="section-hint">Up to three schools</span></summary>
+                <div class="section-body" id="education-body"></div>
+            </details>
+
+            <div class="submit-bar">
+                <div id="fill-error" class="alert alert-error hidden"></div>
+                <button type="button" id="fill-btn" class="btn btn-primary btn-lg">
+                    <i class="fas fa-file-download"></i> Fill &amp; Download PDF
+                </button>
+                <button type="button" id="clear-btn" class="btn btn-secondary" style="margin-left:10px;">Clear Form</button>
+            </div>
+        </form>
+    </main>
+
+    <script>
+    // Education rows: 3 x (school, degree, city/state, year)
+    (function renderEducation() {
+        const body = document.getElementById('education-body');
+        for (let i = 1; i <= 3; i++) {
+            body.insertAdjacentHTML('beforeend', `<h4 class="field-sub">School ${i}</h4>
+                <div class="form-row">
+                    <div class="form-group"><label>School</label><input type="text" data-pdf="education_${i}_school"></div>
+                    <div class="form-group"><label>Degree</label><input type="text" data-pdf="education_${i}_degree"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>City, State</label><input type="text" data-pdf="education_${i}_city_state"></div>
+                    <div class="form-group"><label>Year Completed</label><input type="text" data-pdf="education_${i}_year_completed"></div>
+                </div>`);
+        }
+    })();
+
+    const inputs = () => document.querySelectorAll('#app-form [data-pdf]');
+
+    // Autosave draft
+    const DRAFT = 'ace_app_draft_v1';
+    try {
+        const d = JSON.parse(localStorage.getItem(DRAFT) || '{}');
+        inputs().forEach(el => {
+            if (el.type === 'checkbox') { if (el.dataset.pdf in d) el.checked = !!d[el.dataset.pdf]; }
+            else if (!el.value && el.dataset.pdf in d) el.value = d[el.dataset.pdf];
+        });
+    } catch (_) {}
+    document.getElementById('app-form').addEventListener('input', () => {
+        const d = {};
+        inputs().forEach(el => d[el.dataset.pdf] = el.type === 'checkbox' ? el.checked : el.value);
+        localStorage.setItem(DRAFT, JSON.stringify(d));
+    });
+
+    document.getElementById('clear-btn').addEventListener('click', () => {
+        if (!confirm('Clear all fields?')) return;
+        localStorage.removeItem(DRAFT);
+        inputs().forEach(el => { if (el.type === 'checkbox') el.checked = false; else el.value = el.id === 'af_state' ? 'NC' : ''; });
+    });
+
+    document.getElementById('fill-btn').addEventListener('click', async () => {
+        const errBox = document.getElementById('fill-error');
+        errBox.classList.add('hidden');
+        const btn = document.getElementById('fill-btn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Filling PDF…';
+        try {
+            const bytes = await (await fetch('assets/master-application.pdf')).arrayBuffer();
+            const pdf = await PDFLib.PDFDocument.load(bytes);
+            const form = pdf.getForm();
+            const helv = await pdf.embedFont(PDFLib.StandardFonts.Helvetica);
+
+            let filled = 0, missing = [];
+            inputs().forEach(el => {
+                const name = el.dataset.pdf;
+                try {
+                    if (el.type === 'checkbox') {
+                        const c = form.getCheckBox(name);
+                        el.checked ? c.check() : c.uncheck();
+                    } else if (el.type === 'date' && el.value) {
+                        const [y, m, d] = el.value.split('-');
+                        form.getTextField(name).setText(`${m}/${d}/${y}`);
+                    } else if (el.value.trim() !== '') {
+                        form.getTextField(name).setText(el.value.trim());
+                    }
+                    filled++;
+                } catch (e) { missing.push(name); }
+            });
+            if (missing.length) console.warn('Fields not found in PDF:', missing);
+            form.updateFieldAppearances(helv);
+
+            const out = await pdf.save();
+            const blob = new Blob([out], { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'ACE_Transitions_Master_Application_filled.pdf';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 5000);
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-file-download"></i> Fill & Download PDF';
+        } catch (err) {
+            errBox.textContent = err.message || String(err);
+            errBox.classList.remove('hidden');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-file-download"></i> Fill & Download PDF';
+        }
+    });
+    </script>
+</body>
+</html>

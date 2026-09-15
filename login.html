@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Login | ACE Transitions</title>
+    <meta name="robots" content="noindex, nofollow">
+
+    <link rel="icon" type="image/png" href="TLCLogo.png">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/portal.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="portal-body">
+    <main class="auth-wrap">
+        <div class="auth-card">
+            <div class="auth-logo">
+                <img src="TLCLogo.png" alt="ACE Transitions">
+            </div>
+            <h1>Employee Portal</h1>
+            <p class="auth-sub">Sign in to access training and onboarding documents</p>
+
+            <div id="pending-note" class="alert alert-warn hidden">
+                <i class="fas fa-hourglass-half"></i>
+                Your account has been created but is not activated yet.
+                An administrator needs to approve it — you'll be able to sign in once it's active.
+            </div>
+            <div id="signup-note" class="alert alert-info hidden">
+                <i class="fas fa-circle-info"></i>
+                Account created! Check your inbox for the confirmation email, then come back here to sign in.
+            </div>
+            <div id="error-note" class="alert alert-error hidden"></div>
+
+            <form id="login-form" autocomplete="on">
+                <div class="form-group">
+                    <label for="login-email">Work Email</label>
+                    <input type="email" id="login-email" required autocomplete="email"
+                           placeholder="you@acetransitions.org">
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Password</label>
+                    <input type="password" id="login-password" required autocomplete="current-password"
+                           minlength="8" placeholder="••••••••">
+                </div>
+                <button type="submit" class="btn btn-primary btn-full" id="login-btn">Sign In</button>
+            </form>
+
+            <div class="auth-divider"><span>New employee?</span></div>
+
+            <form id="signup-form" autocomplete="on">
+                <div class="form-group">
+                    <label for="signup-name">Full Legal Name</label>
+                    <input type="text" id="signup-name" required autocomplete="name"
+                           placeholder="First and last name">
+                </div>
+                <div class="form-group">
+                    <label for="signup-email">Work Email</label>
+                    <input type="email" id="signup-email" required autocomplete="email"
+                           placeholder="you@acetransitions.org">
+                </div>
+                <div class="form-group">
+                    <label for="signup-password">Choose Password</label>
+                    <input type="password" id="signup-password" required autocomplete="new-password"
+                           minlength="8" placeholder="At least 8 characters">
+                </div>
+                <button type="submit" class="btn btn-secondary btn-full" id="signup-btn">Create Account</button>
+                <p class="auth-hint">New accounts require administrator approval before access is granted.</p>
+            </form>
+        </div>
+
+        <a href="index.html" class="auth-back"><i class="fas fa-arrow-left"></i> Back to acetransitions.org</a>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/config.js"></script>
+    <script>
+        const params = new URLSearchParams(location.search);
+        if (params.get('pending')) document.getElementById('pending-note').classList.remove('hidden');
+        if (params.get('signup')) document.getElementById('signup-note').classList.remove('hidden');
+        if (params.get('error')) {
+            const box = document.getElementById('error-note');
+            box.textContent = decodeURIComponent(params.get('error'));
+            box.classList.remove('hidden');
+        }
+
+        // Already signed in? Go straight to the portal.
+        supabaseClient.auth.getUser().then(({ data: { user } }) => {
+            if (user) location.replace('portal.html');
+        });
+
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('login-btn');
+            btn.disabled = true;
+            btn.textContent = 'Signing in…';
+            const { error } = await supabaseClient.auth.signInWithPassword({
+                email: document.getElementById('login-email').value.trim(),
+                password: document.getElementById('login-password').value
+            });
+            if (error) {
+                const box = document.getElementById('error-note');
+                box.textContent = error.message;
+                box.classList.remove('hidden');
+                btn.disabled = false;
+                btn.textContent = 'Sign In';
+            } else {
+                location.href = 'portal.html';
+            }
+        });
+
+        document.getElementById('signup-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('signup-btn');
+            btn.disabled = true;
+            btn.textContent = 'Creating…';
+            const { error } = await supabaseClient.auth.signUp({
+                email: document.getElementById('signup-email').value.trim(),
+                password: document.getElementById('signup-password').value,
+                options: { data: { full_name: document.getElementById('signup-name').value.trim() } }
+            });
+            if (error) {
+                const box = document.getElementById('error-note');
+                box.textContent = error.message;
+                box.classList.remove('hidden');
+                btn.disabled = false;
+                btn.textContent = 'Create Account';
+            } else {
+                location.replace('login.html?signup=1');
+            }
+        });
+    </script>
+</body>
+</html>

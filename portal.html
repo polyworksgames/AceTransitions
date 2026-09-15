@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Portal | ACE Transitions</title>
+    <meta name="robots" content="noindex, nofollow">
+
+    <link rel="icon" type="image/png" href="TLCLogo.png">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/portal.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="portal-body">
+    <nav class="portal-nav">
+        <div class="portal-nav-inner">
+            <div class="portal-brand">
+                <img src="TLCLogo.png" alt="ACE Transitions">
+                <span>Employee Portal</span>
+            </div>
+            <div class="portal-user">
+                <span id="user-badge" class="role-badge hidden">Admin</span>
+                <span id="user-name">…</span>
+                <button id="signout-btn" class="btn btn-small btn-secondary">Sign Out</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="portal-main">
+        <div id="portal-loading" class="portal-loading"><i class="fas fa-spinner fa-spin"></i> Loading your portal…</div>
+
+        <div id="portal-content" class="hidden">
+            <div class="tabs" id="tabs">
+                <button class="tab active" data-tab="training"><i class="fas fa-video"></i> Training Videos</button>
+                <button class="tab" data-tab="documents"><i class="fas fa-file-signature"></i> My Documents</button>
+                <button class="tab admin-only hidden" data-tab="people"><i class="fas fa-users"></i> People Progress</button>
+                <button class="tab admin-only hidden" data-tab="manage"><i class="fas fa-sliders-h"></i> Manage Videos</button>
+            </div>
+
+            <!-- ===================== TRAINING (employee + admin) ===================== -->
+            <section id="tab-training" class="tab-panel">
+                <div class="panel-head">
+                    <h2>Training Videos</h2>
+                    <p>Watch each video and mark it complete. Your progress is visible to administrators.</p>
+                </div>
+                <div class="progress-card">
+                    <div class="progress-text"><span id="progress-label">0 of 0 complete</span></div>
+                    <div class="progress-track"><div id="progress-bar" class="progress-bar" style="width:0%"></div></div>
+                </div>
+                <div id="videos-list" class="cards-list"></div>
+            </section>
+
+            <!-- ===================== MY DOCUMENTS ===================== -->
+            <section id="tab-documents" class="tab-panel hidden">
+                <div class="panel-head">
+                    <h2>My Documents</h2>
+                    <p>Forms to complete and files to upload. Everything here is private — only you and administrators can view it.</p>
+                </div>
+                <div id="documents-list" class="cards-list"></div>
+                <h3 class="uploads-heading"><i class="fas fa-cloud-arrow-up"></i> Uploads</h3>
+                <div id="uploads-list" class="cards-list"></div>
+            </section>
+
+            <!-- ===================== ADMIN: PEOPLE PROGRESS ===================== -->
+            <section id="tab-people" class="tab-panel hidden">
+                <div class="panel-head">
+                    <h2>People Progress</h2>
+                    <p>Training and document completion for every account. Click a row to see details.</p>
+                </div>
+                <div class="table-wrap">
+                    <table class="admin-table" id="people-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Training</th>
+                                <th>Onboarding Packet</th>
+                                <th>Master Application</th>
+                                <th>IDs</th>
+                                <th>Credentials</th>
+                                <th>Account</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="people-body"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- ===================== ADMIN: MANAGE VIDEOS ===================== -->
+            <section id="tab-manage" class="tab-panel hidden">
+                <div class="panel-head">
+                    <h2>Manage Training Videos</h2>
+                    <p>Add, edit, or remove the training videos employees must complete.</p>
+                </div>
+                <div class="video-editor">
+                    <h3 id="video-editor-title">Add a new video</h3>
+                    <form id="video-form">
+                        <input type="hidden" id="video-id">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="video-title">Title</label>
+                                <input type="text" id="video-title" required>
+                            </div>
+                            <div class="form-group form-group-small">
+                                <label for="video-sort">Order</label>
+                                <input type="number" id="video-sort" value="0">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="video-url">Video URL (YouTube link or direct .mp4)</label>
+                            <input type="url" id="video-url" required placeholder="https://www.youtube.com/watch?v=…">
+                        </div>
+                        <div class="form-group">
+                            <label for="video-desc">Description</label>
+                            <textarea id="video-desc" rows="2"></textarea>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary" id="video-save-btn">Add Video</button>
+                            <button type="button" class="btn btn-secondary hidden" id="video-cancel-btn">Cancel Edit</button>
+                        </div>
+                    </form>
+                </div>
+                <div id="manage-list" class="cards-list"></div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Uploaded-files viewer -->
+    <div class="upload-modal" id="uploads-modal-ssr" aria-hidden="true">
+        <div class="upload-modal-box">
+            <div class="upload-modal-head">
+                <strong>Uploaded files</strong>
+                <button type="button" class="modal-x" aria-label="Close">×</button>
+            </div>
+            <div class="upload-modal-body"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/config.js"></script>
+    <script>
+    (async () => {
+        const me = await requireUser();
+        if (!me) return;
+        const isAdmin = me.role === 'admin';
+
+        document.getElementById('portal-loading').classList.add('hidden');
+        document.getElementById('portal-content').classList.remove('hidden');
+        document.getElementById('user-name').textContent = me.full_name || me.email;
+        if (isAdmin) {
+            document.getElementById('user-badge').classList.remove('hidden');
+            document.querySelectorAll('.admin-only').forEach(el => el.classList.remove('hidden'));
+        }
+        document.getElementById('signout-btn').addEventListener('click', portalSignOut);
+
+        // ---------- Tabs ----------
+        document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+            document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+            document.querySelectorAll('.tab-panel').forEach(x => x.classList.add('hidden'));
+            t.classList.add('active');
+            document.getElementById('tab-' + t.dataset.tab).classList.remove('hidden');
+        }));
+
+        // ---------- State ----------
+        let videos = [], completions = new Set(), assignments = [], uploads = [];
+        const myCompletionsKey = () => completions;
+
+        // ---------- Employee: training videos ----------
+        async function loadTraining() {
+            const [{ data: vids, error: e1 }, { data: comps, error: e2 }] = await Promise.all([
+                supabaseClient.from('training_videos').select('*').order('sort_order'),
+                supabaseClient.from('training_completions').select('video_id').eq('user_id', me.id)
+            ]);
+            if (e1) return showToast('Could not load videos: ' + e1.message, true);
+            videos = vids || [];
+            completions = new Set((comps || []).map(c => c.video_id));
+            renderVideos();
+        }
+
+        function embedHtml(url) {
+            const yt = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/);
+            if (yt) return `<iframe src="https://www.youtube.com/embed/${yt[1]}" title="Training video"
+                                frameborder="0" allow="accelerometer; clipboard-write; encrypted-media; picture-in-picture"
+                                allowfullscreen></iframe>`;
+            return `<video controls preload="metadata" src="${url}"></video>`;
+        }
+
+        function renderVideos() {
+            const list = document.getElementById('videos-list');
+            const done = videos.filter(v => completions.has(v.id)).length;
+            document.getElementById('progress-label').textContent = `${done} of ${videos.length} complete`;
+            document.getElementById('progress-bar').style.width = videos.length ? (100 * done / videos.length) + '%' : '0%';
+
+            list.innerHTML = videos.length ? '' : '<p class="empty-note">No training videos have been assigned yet.</p>';
+            videos.forEach(v => {
+                const isDone = completions.has(v.id);
+                const card = document.createElement('div');
+                card.className = 'video-card';
+                card.innerHTML = `
+                    <div class="video-embed">${embedHtml(v.url)}</div>
+                    <div class="video-info">
+                        <h3>${escapeHtml(v.title)} ${isDone ? '<span class="badge badge-done"><i class="fas fa-check"></i> Completed</span>' : ''}</h3>
+                        <p>${escapeHtml(v.description || '')}</p>
+                        <div class="video-actions">
+                            <a class="btn btn-small btn-secondary" href="${v.url}" target="_blank" rel="noopener">
+                                <i class="fas fa-up-right-from-square"></i> Open original</a>
+                            <button class="btn btn-small ${isDone ? 'btn-muted' : 'btn-primary'}" data-vid="${v.id}" data-done="${isDone}">
+                                ${isDone ? '<i class="fas fa-rotate-left"></i> Undo' : '<i class="fas fa-check"></i> Mark complete'}
+                            </button>
+                        </div>
+                    </div>`;
+                list.appendChild(card);
+            });
+            list.querySelectorAll('button[data-vid]').forEach(b => b.addEventListener('click', async () => {
+                const vid = b.dataset.vid, wasDone = b.dataset.done === 'true';
+                b.disabled = true;
+                const { error } = wasDone
+                    ? await supabaseClient.from('training_completions')
+                        .delete().eq('user_id', me.id).eq('video_id', vid)
+                    : await supabaseClient.from('training_completions')
+                        .insert({ user_id: me.id, video_id: vid });
+                if (error) showToast(error.message, true);
+                else await loadTraining();
+            }));
+        }
+
+        // ---------- Employee: documents ----------
+        const DOC_META = {
+            onboarding_packet: {
+                title: '1099 Independent Contractor Onboarding Packet',
+                desc: 'Fill out your onboarding packet online — your answers are written into the official PDF, saved privately, and marked complete for you and the administrators.',
+                icon: 'fa-file-signature'
+            },
+            master_application: {
+                title: 'Master Application',
+                desc: 'Complete the ACE Transitions master application online — filled into the official PDF, saved privately, and visible to you and the administrators.',
+                icon: 'fa-file-lines'
+            }
+        };
+
+        // Upload sections: identification + credentials
+        const UPLOAD_SECTIONS = [
+            {
+                key: 'identification',
+                title: 'Identification Documents',
+                desc: 'Upload two (2) forms of identification — for example a driver\u2019s license, state ID card, passport, or social security card.',
+                min: 2,
+                accept: 'image/*,application/pdf',
+                icon: 'fa-id-card'
+            },
+            {
+                key: 'credentials',
+                title: 'Credentials & Certifications',
+                desc: 'Upload your peer support certification, diplomas, and any other relevant certificates related to peer support or therapy (CPSS, CPR/First Aid, clinical licenses, training certificates).',
+                min: 0,
+                accept: 'image/*,application/pdf',
+                icon: 'fa-certificate'
+            }
+        ];
+
+        async function loadDocuments() {
+            const { data, error } = await supabaseClient
+                .from('document_assignments')
+                .select('*').eq('user_id', me.id);
+            if (error) return showToast('Could not load documents: ' + error.message, true);
+            assignments = data || [];
+            renderDocuments();
+            loadUploads();
+        }
+
+        async function loadUploads() {
+            const { data, error } = await supabaseClient
+                .from('document_uploads')
+                .select('*').eq('user_id', me.id);
+            if (error) return showToast('Could not load uploads: ' + error.message, true);
+            uploads = data || [];
+            renderUploads();
+        }
+
+        function renderUploads() {
+            const wrap = document.getElementById('uploads-list');
+            if (!wrap) return;
+            wrap.innerHTML = '';
+            UPLOAD_SECTIONS.forEach(sec => {
+                const mine = uploads.filter(u => u.category === sec.key)
+                    .sort((a, b) => new Date(a.uploaded_at) - new Date(b.uploaded_at));
+                const meets = mine.length >= sec.min;
+                const card = document.createElement('div');
+                card.className = 'doc-card ' + (meets ? 'doc-done' : 'doc-pending');
+                card.innerHTML = `
+                    <div class="doc-icon"><i class="fas ${sec.icon}"></i></div>
+                    <div class="doc-info">
+                        <h3>${sec.title}
+                            ${sec.min
+                                ? `<span class="badge ${meets ? 'badge-done' : 'badge-pending'}">${mine.length} of ${sec.min} ${meets ? 'received' : 'required'}</span>`
+                                : `<span class="badge">${mine.length} file${mine.length === 1 ? '' : 's'}</span>`}</h3>
+                        <p>${sec.desc}</p>
+                        <div class="upload-files">
+                            ${mine.length ? mine.map(u => `
+                                <div class="upload-file">
+                                    <i class="fas ${u.mime_type === 'application/pdf' ? 'fa-file-pdf' : 'fa-file-image'}"></i>
+                                    <span class="upload-name">${escapeHtml(u.file_name)}</span>
+                                    <button class="link-btn view-upload-btn" data-path="${u.file_path}">View</button>
+                                    <button class="link-btn del-upload-btn" data-id="${u.id}" data-path="${u.file_path}">Remove</button>
+                                </div>`).join('') : '<p class="empty-note">No files uploaded yet.</p>'}
+                        </div>
+                        <label class="btn btn-small btn-primary upload-label">
+                            <i class="fas fa-upload"></i> ${sec.min && !meets ? `Upload ${sec.min - mine.length} more` : 'Add file'}
+                            <input type="file" class="upload-input" data-cat="${sec.key}" accept="${sec.accept}" multiple hidden>
+                        </label>
+                        <p class="upload-hint">Images (JPG, PNG, HEIC) or PDF, up to 10 MB each. Only you and administrators can see these files.</p>
+                    </div>`;
+                wrap.appendChild(card);
+            });
+
+            wrap.querySelectorAll('.upload-input').forEach(inp =>
+                inp.addEventListener('change', () => handleUploads(inp)));
+            wrap.querySelectorAll('.view-upload-btn').forEach(b =>
+                b.addEventListener('click', () => downloadCompletedPacket(b.dataset.path)));
+            wrap.querySelectorAll('.del-upload-btn').forEach(b =>
+                b.addEventListener('click', async () => {
+                    if (!confirm('Remove this file?')) return;
+                    const { error: stoErr } = await supabaseClient.storage.from('documents').remove([b.dataset.path]);
+                    if (stoErr) showToast('Could not delete file: ' + stoErr.message, true);
+                    const { error: dbErr } = await supabaseClient.from('document_uploads').delete().eq('id', b.dataset.id);
+                    if (dbErr) showToast(dbErr.message, true);
+                    loadUploads();
+                }));
+        }
+
+        async function handleUploads(inp) {
+            const cat = inp.dataset.cat;
+            const files = [...inp.files];
+            if (!files.length) return;
+            let ok = 0;
+            for (const f of files) {
+                if (f.size > 10 * 1024 * 1024) {
+                    showToast(`${f.name} is larger than 10 MB — skipped`, true);
+                    continue;
+                }
+                const safe = f.name.replace(/[^\w.\- ]/g, '_');
+                const path = `${me.id}/${cat}-${Date.now()}-${safe}`;
+                const { error: upErr } = await supabaseClient.storage
+                    .from('documents')
+                    .upload(path, f, { contentType: f.type || 'application/octet-stream' });
+                if (upErr) { showToast(`Upload failed for ${f.name}: ${upErr.message}`, true); continue; }
+                const { error: dbErr } = await supabaseClient.from('document_uploads')
+                    .insert({
+                        user_id: me.id,
+                        category: cat,
+                        file_name: f.name,
+                        file_path: path,
+                        mime_type: f.type || null,
+                        file_size: f.size
+                    });
+                if (dbErr) { showToast(`Could not record ${f.name}: ${dbErr.message}`, true); continue; }
+                ok++;
+            }
+            if (ok) showToast(`${ok} file${ok === 1 ? '' : 's'} uploaded`);
+            inp.value = '';
+            loadUploads();
+        }
+
+        function renderDocuments() {
+            const list = document.getElementById('documents-list');
+            list.innerHTML = '';
+            Object.entries(DOC_META).forEach(([docKey, meta]) => {
+                const row = assignments.find(a => a.doc_key === docKey);
+                const done = row && row.status === 'complete';
+                const card = document.createElement('div');
+                card.className = 'doc-card ' + (done ? 'doc-done' : 'doc-pending');
+                card.innerHTML = `
+                    <div class="doc-icon"><i class="fas ${meta.icon}"></i></div>
+                    <div class="doc-info">
+                        <h3>${meta.title}
+                            ${done ? '<span class="badge badge-done"><i class="fas fa-check"></i> Complete</span>'
+                                   : '<span class="badge badge-pending">Pending</span>'}</h3>
+                        <p>${meta.desc}</p>
+                        ${done && row.completed_at ? `<p class="doc-meta"><i class="fas fa-calendar-check"></i> Submitted
+                                    ${new Date(row.completed_at).toLocaleString()}</p>` : ''}
+                    </div>
+                    <div class="doc-actions">
+                        ${done
+                            ? `<button class="btn btn-secondary view-doc-btn" data-path="${row.file_path}"><i class="fas fa-eye"></i> View my PDF</button>
+                               <a class="btn btn-muted" href="packet.html?doc=${docKey}"><i class="fas fa-pen"></i> Fill again</a>`
+                            : `<a class="btn btn-primary" href="packet.html?doc=${docKey}"><i class="fas fa-pen-to-square"></i> Complete</a>`}
+                    </div>`;
+                list.appendChild(card);
+            });
+            list.querySelectorAll('.view-doc-btn').forEach(b =>
+                b.addEventListener('click', () => downloadCompletedPacket(b.dataset.path)));
+        }
+
+        // ---------- Admin: people progress ----------
+        async function loadPeople() {
+            if (!isAdmin) return;
+            const [{ data: people, error: e1 }, { data: vids, error: e2 }, { data: comps, error: e3 }, { data: docs, error: e4 }, { data: ups, error: e5 }] =
+                await Promise.all([
+                    supabaseClient.from('profiles').select('*').order('created_at'),
+                    supabaseClient.from('training_videos').select('id,title').order('sort_order'),
+                    supabaseClient.from('training_completions').select('user_id,video_id,completed_at'),
+                    supabaseClient.from('document_assignments').select('*'),
+                    supabaseClient.from('document_uploads').select('id,user_id,category,file_name,file_path,uploaded_at')
+                ]);
+            if (e1 || e2 || e3 || e4 || e5) return showToast('Could not load progress data', true);
+            renderPeople(people || [], vids || [], comps || [], docs || [], ups || []);
+        }
+
+        function renderPeople(people, vids, comps, docs, ups) {
+            const tbody = document.getElementById('people-body');
+            tbody.innerHTML = '';
+            people.forEach(p => {
+                const docCell = key => {
+                    const d = docs.find(x => x.user_id === p.id && x.doc_key === key);
+                    return d && d.status === 'complete'
+                        ? `<span class="badge badge-done">Complete</span> <button class="link-btn view-pdf-btn" data-path="${d.file_path}">View PDF</button>`
+                        : '<span class="badge badge-pending">Pending</span>';
+                };
+                const upCell = (uid, cat) => {
+                    const files = ups.filter(u => u.user_id === uid && u.category === cat);
+                    if (!files.length) return '<span class="badge badge-pending">None</span>';
+                    return `<span class="badge badge-done">${files.length}</span> <button class="link-btn view-ups-btn" data-uid="${uid}" data-cat="${cat}">View files</button>`;
+                };
+                const myComps = comps.filter(c => c.user_id === p.id);
+                const myDocs = docs.find(d => d.user_id === p.id && d.doc_key === 'onboarding_packet');
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${escapeHtml(p.full_name || '—')}</strong>
+                        ${p.role === 'admin' ? '<span class="badge badge-admin">Admin</span>' : ''}
+                        ${p.id === me.id ? '<span class="badge">You</span>' : ''}</td>
+                    <td>${escapeHtml(p.email)}</td>
+                    <td>${myComps.length} / ${vids.length}
+                        <i class="fas fa-chevron-down row-toggle"></i></td>
+                    <td>${docCell('onboarding_packet')}</td>
+                    <td>${docCell('master_application')}</td>
+                    <td>${upCell(p.id, 'identification')}</td>
+                    <td>${upCell(p.id, 'credentials')}</td>
+                    <td>${p.active ? '<span class="badge badge-done">Active</span>' : '<span class="badge badge-pending">Inactive</span>'}</td>
+                    <td class="actions-cell">
+                        ${p.id !== me.id ? `
+                            <button class="link-btn toggle-active" data-id="${p.id}" data-active="${p.active}">
+                                ${p.active ? 'Deactivate' : 'Activate'}</button>
+                            <button class="link-btn toggle-admin" data-id="${p.id}" data-role="${p.role}">
+                                ${p.role === 'admin' ? 'Make employee' : 'Make admin'}</button>` : ''}
+                        ${!docs.some(d => d.user_id === p.id) ? `<button class="link-btn assign-doc" data-id="${p.id}">Assign docs</button>` : ''}
+                    </td>`;
+                tbody.appendChild(tr);
+
+                // expandable per-video detail
+                const detail = document.createElement('tr');
+                detail.className = 'detail-row hidden';
+                detail.innerHTML = `<td colspan="8"><div class="detail-chips">` +
+                    (vids.length ? vids.map(v => {
+                        const c = myComps.find(x => x.video_id === v.id);
+                        return c
+                            ? `<span class="chip chip-done"><i class="fas fa-check"></i> ${escapeHtml(v.title)} — ${new Date(c.completed_at).toLocaleDateString()}</span>`
+                            : `<span class="chip chip-todo"><i class="fas fa-circle"></i> ${escapeHtml(v.title)}</span>`;
+                    }).join('') : '<em>No videos assigned yet.</em>') + `</div></td>`;
+                tbody.appendChild(detail);
+            });
+
+            tbody.querySelectorAll('.row-toggle').forEach(t =>
+                t.addEventListener('click', () => t.closest('tr').nextElementSibling.classList.toggle('hidden')));
+            tbody.querySelectorAll('.view-pdf-btn').forEach(b =>
+                b.addEventListener('click', () => downloadCompletedPacket(b.dataset.path)));
+            tbody.querySelectorAll('.view-ups-btn').forEach(b =>
+                b.addEventListener('click', () => {
+                    const files = ups.filter(u => u.user_id === b.dataset.uid && u.category === b.dataset.cat);
+                    if (!files.length) return;
+                    const listEl = document.createElement('div');
+                    listEl.className = 'upload-files';
+                    listEl.innerHTML = files.map(u => `
+                        <div class="upload-file">
+                            <i class="fas ${u.mime_type === 'application/pdf' ? 'fa-file-pdf' : 'fa-file-image'}"></i>
+                            <span class="upload-name">${escapeHtml(u.file_name)}</span>
+                            <button class="link-btn view-upload-btn" data-path="${u.file_path}">View</button>
+                        </div>`).join('');
+                    listEl.querySelectorAll('.view-upload-btn').forEach(btn =>
+                        btn.addEventListener('click', () => downloadCompletedPacket(btn.dataset.path)));
+                    openUploadModal(listEl);
+                }));
+            tbody.querySelectorAll('.toggle-active').forEach(b => b.addEventListener('click', () =>
+                updateProfile(b.dataset.id, { active: b.dataset.active !== 'true' })));
+            tbody.querySelectorAll('.toggle-admin').forEach(b => b.addEventListener('click', () =>
+                updateProfile(b.dataset.id, { role: b.dataset.role === 'admin' ? 'employee' : 'admin' })));
+            tbody.querySelectorAll('.assign-doc').forEach(b => b.addEventListener('click', async () => {
+                const { error } = await supabaseClient.from('document_assignments')
+                    .insert([
+                        { user_id: b.dataset.id, doc_key: 'onboarding_packet' },
+                        { user_id: b.dataset.id, doc_key: 'master_application' }
+                    ]);
+                if (error) showToast(error.message, true); else { showToast('Documents assigned'); loadPeople(); }
+            }));
+        }
+
+        // Uploaded-files viewer modal (static markup at bottom of the page)
+        function openUploadModal(contentEl) {
+            const modal = document.getElementById('uploads-modal-ssr');
+            if (!modal) return;
+            const body = modal.querySelector('.upload-modal-body');
+            body.innerHTML = '';
+            body.appendChild(contentEl);
+            modal.classList.add('open');
+        }
+        const ssrModal = document.getElementById('uploads-modal-ssr');
+        if (ssrModal) {
+            ssrModal.querySelector('.modal-x').addEventListener('click', () => ssrModal.classList.remove('open'));
+            ssrModal.addEventListener('click', e => { if (e.target === ssrModal) ssrModal.classList.remove('open'); });
+        }
+
+        async function updateProfile(id, patch) {
+            const { error } = await supabaseClient.from('profiles').update(patch).eq('id', id);
+            if (error) showToast(error.message, true); else { showToast('Saved'); loadPeople(); }
+        }
+
+        // ---------- Admin: manage videos ----------
+        async function loadManage() {
+            if (!isAdmin) return;
+            const { data, error } = await supabaseClient.from('training_videos').select('*').order('sort_order');
+            if (error) return showToast(error.message, true);
+            const list = document.getElementById('manage-list');
+            list.innerHTML = data.length ? '' : '<p class="empty-note">No videos yet — add your first one above.</p>';
+            (data || []).forEach(v => {
+                const card = document.createElement('div');
+                card.className = 'manage-card';
+                card.innerHTML = `
+                    <div class="manage-info">
+                        <strong>${escapeHtml(v.title)}</strong> <span class="badge">order ${v.sort_order}</span>
+                        <p>${escapeHtml(v.description || '')}</p>
+                        <a href="${v.url}" target="_blank" rel="noopener" class="manage-url">${escapeHtml(v.url)}</a>
+                    </div>
+                    <div class="manage-actions">
+                        <button class="btn btn-small btn-secondary edit-vid" data-vid='${JSON.stringify(v)}'>Edit</button>
+                        <button class="btn btn-small btn-danger del-vid" data-id="${v.id}">Delete</button>
+                    </div>`;
+                list.appendChild(card);
+            });
+            list.querySelectorAll('.edit-vid').forEach(b => b.addEventListener('click', () => {
+                const v = JSON.parse(b.dataset.vid);
+                document.getElementById('video-editor-title').textContent = 'Edit video';
+                document.getElementById('video-id').value = v.id;
+                document.getElementById('video-title').value = v.title;
+                document.getElementById('video-sort').value = v.sort_order;
+                document.getElementById('video-url').value = v.url;
+                document.getElementById('video-desc').value = v.description || '';
+                document.getElementById('video-save-btn').textContent = 'Save changes';
+                document.getElementById('video-cancel-btn').classList.remove('hidden');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }));
+            list.querySelectorAll('.del-vid').forEach(b => b.addEventListener('click', async () => {
+                if (!confirm('Delete this video? Completion records for it will be removed too.')) return;
+                const { error } = await supabaseClient.from('training_videos').delete().eq('id', b.dataset.id);
+                if (error) showToast(error.message, true); else loadManage();
+            }));
+        }
+
+        document.getElementById('video-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('video-id').value;
+            const row = {
+                title: document.getElementById('video-title').value.trim(),
+                url: document.getElementById('video-url').value.trim(),
+                description: document.getElementById('video-desc').value.trim(),
+                sort_order: parseInt(document.getElementById('video-sort').value, 10) || 0
+            };
+            const { error } = id
+                ? await supabaseClient.from('training_videos').update(row).eq('id', id)
+                : await supabaseClient.from('training_videos').insert(row);
+            if (error) return showToast(error.message, true);
+            showToast(id ? 'Video updated' : 'Video added');
+            document.getElementById('video-form').reset();
+            document.getElementById('video-id').value = '';
+            document.getElementById('video-editor-title').textContent = 'Add a new video';
+            document.getElementById('video-save-btn').textContent = 'Add Video';
+            document.getElementById('video-cancel-btn').classList.add('hidden');
+            loadManage();
+        });
+        document.getElementById('video-cancel-btn').addEventListener('click', () => {
+            document.getElementById('video-form').reset();
+            document.getElementById('video-id').value = '';
+            document.getElementById('video-editor-title').textContent = 'Add a new video';
+            document.getElementById('video-save-btn').textContent = 'Add Video';
+            document.getElementById('video-cancel-btn').classList.add('hidden');
+        });
+
+        // ---------- Boot ----------
+        loadTraining();
+        loadDocuments();
+        if (isAdmin) { loadPeople(); loadManage(); }
+
+        // Realtime-ish refresh when tab becomes visible again
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) { loadTraining(); loadDocuments(); if (isAdmin) loadPeople(); }
+        });
+    })();
+
+    function escapeHtml(s) {
+        return String(s ?? '').replace(/[&<>"']/g, c =>
+            ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+    </script>
+</body>
+</html>
