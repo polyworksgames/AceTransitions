@@ -19,6 +19,11 @@
                 <img src="TLCLogo.png" alt="ACE Transitions">
                 <span>Employee Portal</span>
             </div>
+            <div class="portal-links">
+                <a href="index.html">Home</a>
+                <a href="resources.html">Resources</a>
+                <a href="careers.html">Careers</a>
+            </div>
             <div class="portal-user">
                 <span id="user-badge" class="role-badge hidden">Admin</span>
                 <span id="user-name">…</span>
@@ -34,6 +39,7 @@
             <div class="tabs" id="tabs">
                 <button class="tab active" data-tab="training"><i class="fas fa-video"></i> Training Videos</button>
                 <button class="tab" data-tab="documents"><i class="fas fa-file-signature"></i> My Documents</button>
+                <button class="tab admin-only hidden" data-tab="people"><i class="fas fa-users"></i> People Progress</button>
                 <button class="tab admin-only hidden" data-tab="manage"><i class="fas fa-sliders-h"></i> Manage Videos</button>
                 <button class="tab admin-only hidden" data-tab="shared"><i class="fas fa-folder-open"></i> Manage Documents</button>
             </div>
@@ -58,6 +64,11 @@
                     <p>Forms to complete and files to upload. Everything here is private — only you and administrators can view it.</p>
                 </div>
                 <div id="documents-list" class="cards-list"></div>
+
+                <h3 class="uploads-heading"><i class="fas fa-scale-balanced"></i> Policies &amp; Agreements</h3>
+                <p class="uploads-subnote">These don\u2019t need a signature here \u2014 you agreed to them when you set up your
+                   Connecteam and/or SimplePractice account. Keep copies for your reference.</p>
+                <div id="policies-list" class="cards-list"></div>
 
                 <h3 class="uploads-heading"><i class="fas fa-folder-open"></i> Company Documents</h3>
                 <p class="uploads-subnote">Handbooks, policies, and forms from the administrators.</p>
@@ -108,6 +119,13 @@
                                 <label for="shared-title">Title</label>
                                 <input type="text" id="shared-title" required placeholder="e.g. Employee Handbook 2026">
                             </div>
+                            <div class="form-group">
+                                <label for="shared-type">Category</label>
+                                <select id="shared-type" required>
+                                    <option value="company">Company Document</option>
+                                    <option value="policy">Policy / Agreement</option>
+                                </select>
+                            </div>
                             <div class="form-group form-group-small">
                                 <label for="shared-file">File</label>
                                 <input type="file" id="shared-file" required accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv" hidden>
@@ -120,6 +138,10 @@
                         <div class="form-group">
                             <label for="shared-desc">Description (optional)</label>
                             <textarea id="shared-desc" rows="2" placeholder="What is this document for?"></textarea>
+                        </div>
+                        <div class="form-group hidden" id="shared-via-group">
+                            <label for="shared-via">Accepted via (shown to employees)</label>
+                            <input type="text" id="shared-via" placeholder="e.g. Connecteam, SimplePractice">
                         </div>
                         <div class="form-actions">
                             <button type="submit" class="btn btn-primary" id="shared-upload-btn">
@@ -323,7 +345,71 @@
             if (error) return showToast('Could not load company documents: ' + error.message, true);
             sharedDocs = data || [];
             renderSharedDocs();
+            renderPolicies();
             if (isAdmin) renderSharedManage();
+        }
+
+        // ---------- Policies & Agreements (already accepted via third-party apps) ----------
+        // Built from the shared_documents table where doc_type = 'policy'.
+        // One entry is bundled with the site as a fallback:
+
+        const BUNDLED_POLICIES = [
+            {
+                title: 'Connecteam Employee Terms, Conditions, and Privacy Policy',
+                desc: 'Terms you accepted when activating your Connecteam account \u2014 covers acceptable use, privacy, and company communication tools.',
+                file_path: 'assets/connecteam-employee-terms.pdf',
+                accepted_via: 'Connecteam',
+                file_name: 'connecteam-employee-terms.pdf'
+            }
+        ];
+
+        function renderPolicies() {
+            const wrap = document.getElementById('policies-list');
+            if (!wrap) return;
+            const uploaded = sharedDocs.filter(d => d.doc_type === 'policy');
+            const all = [...BUNDLED_POLICIES, ...uploaded];
+            wrap.innerHTML = '';
+            all.forEach(p => {
+                const via = p.accepted_via ? `Accepted via ${p.accepted_via}` : 'Agreed via third-party app';
+                const isBundled = !uploaded.includes(p);
+                const card = document.createElement('div');
+                card.className = 'manage-card';
+                card.innerHTML = `
+                    <div class="manage-info" style="display:flex; gap:12px; align-items:flex-start;">
+                        <i class="fas fa-file-shield" style="font-size:1.4rem; color:var(--light-blue); margin-top:3px;"></i>
+                        <div>
+                            <strong>${escapeHtml(p.title)}</strong>
+                            <p>${escapeHtml(p.desc || '')}</p>
+                            <span class="badge badge-done"><i class="fas fa-check"></i> ${escapeHtml(via)}</span>
+                        </div>
+                    </div>
+                    <div class="manage-actions">
+                        ${isBundled
+                            ? `<a class="btn btn-small btn-secondary" href="${p.file_path}" target="_blank" rel="noopener"><i class="fas fa-eye"></i> View</a>
+                               <a class="btn btn-small btn-muted" href="${p.file_path}" download><i class="fas fa-download"></i> Download</a>`
+                            : `<button class="btn btn-small btn-secondary view-shared-btn" data-path="${p.file_path}"><i class="fas fa-eye"></i> View</button>
+                               <button class="btn btn-small btn-muted dl-shared-btn" data-path="${p.file_path}" data-name="${escapeHtml(p.file_name)}"><i class="fas fa-download"></i> Download</button>`}
+                        ${isAdmin && !isBundled ? `<button class="btn btn-small btn-danger del-shared-btn" data-id="${p.id}" data-path="${p.file_path}">Delete</button>` : ''}
+                    </div>`;
+                wrap.appendChild(card);
+            });
+            wrap.querySelectorAll('.view-shared-btn').forEach(b =>
+                b.addEventListener('click', () => downloadCompletedPacket(b.dataset.path)));
+            wrap.querySelectorAll('.dl-shared-btn').forEach(b =>
+                b.addEventListener('click', async () => {
+                    const { data, error } = await supabaseClient.storage.from('documents').createSignedUrl(b.dataset.path, 300, { download: b.dataset.name });
+                    if (error || !data) return showToast('Could not download: ' + (error?.message || 'unknown error'), true);
+                    location.href = data.signedUrl;
+                }));
+            wrap.querySelectorAll('.del-shared-btn').forEach(b => b.addEventListener('click', async () => {
+                if (!confirm('Delete this policy?')) return;
+                const { error: stoErr } = await supabaseClient.storage.from('documents').remove([b.dataset.path]);
+                if (stoErr) showToast('Could not delete file: ' + stoErr.message, true);
+                const { error: dbErr } = await supabaseClient.from('shared_documents').delete().eq('id', b.dataset.id);
+                if (dbErr) return showToast(dbErr.message, true);
+                showToast('Policy deleted');
+                loadSharedDocs();
+            }));
         }
 
         function fileIcon(mime, name) {
@@ -338,9 +424,10 @@
         function renderSharedDocs() {
             const wrap = document.getElementById('shared-docs-list');
             if (!wrap) return;
-            wrap.innerHTML = sharedDocs.length ? '' :
+            const company = sharedDocs.filter(d => (d.doc_type || 'company') === 'company');
+            wrap.innerHTML = company.length ? '' :
                 '<p class="empty-note">No company documents have been shared yet.</p>';
-            sharedDocs.forEach(d => {
+            company.forEach(d => {
                 const card = document.createElement('div');
                 card.className = 'manage-card';
                 card.innerHTML = `
@@ -377,19 +464,25 @@
             wrap.innerHTML = sharedDocs.length ? '' :
                 '<p class="empty-note">Nothing uploaded yet — add your first document above.</p>';
             sharedDocs.forEach(d => {
+                const isPolicy = d.doc_type === 'policy';
                 const card = document.createElement('div');
                 card.className = 'manage-card';
                 card.innerHTML = `
                     <div class="manage-info">
                         <strong>${escapeHtml(d.title)}</strong>
+                        <span class="badge ${isPolicy ? 'badge-done' : ''}"><i class="fas ${isPolicy ? 'fa-scale-balanced' : 'fa-folder-open'}"></i> ${isPolicy ? 'Policy' : 'Company doc'}</span>
+                        ${isPolicy && d.accepted_via ? `<span class="badge">via ${escapeHtml(d.accepted_via)}</span>` : ''}
                         <p>${escapeHtml(d.description || '')}</p>
                         <span class="manage-url">${escapeHtml(d.file_name)}${d.file_size ? ' · ' + (d.file_size / 1024 / 1024).toFixed(2) + ' MB' : ''}</span>
                     </div>
                     <div class="manage-actions">
+                        <button class="btn btn-small btn-secondary view-shared-btn" data-path="${d.file_path}"><i class="fas fa-eye"></i> View</button>
                         <button class="btn btn-small btn-danger del-shared-btn" data-id="${d.id}" data-path="${d.file_path}">Delete</button>
                     </div>`;
                 wrap.appendChild(card);
             });
+            wrap.querySelectorAll('.view-shared-btn').forEach(b =>
+                b.addEventListener('click', () => downloadCompletedPacket(b.dataset.path)));
             wrap.querySelectorAll('.del-shared-btn').forEach(b => b.addEventListener('click', async () => {
                 if (!confirm('Delete this document? Employees will no longer see it.')) return;
                 const { error: stoErr } = await supabaseClient.storage.from('documents').remove([b.dataset.path]);
@@ -406,6 +499,10 @@
         sharedFileInput.addEventListener('change', () => {
             document.getElementById('shared-file-name').textContent =
                 sharedFileInput.files.length ? sharedFileInput.files[0].name : '';
+        });
+        const sharedTypeSel = document.getElementById('shared-type');
+        sharedTypeSel.addEventListener('change', () => {
+            document.getElementById('shared-via-group').classList.toggle('hidden', sharedTypeSel.value !== 'policy');
         });
         document.getElementById('shared-doc-form').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -425,6 +522,9 @@
                 const { error: dbErr } = await supabaseClient.from('shared_documents').insert({
                     title: document.getElementById('shared-title').value.trim(),
                     description: document.getElementById('shared-desc').value.trim(),
+                    doc_type: sharedTypeSel.value,
+                    accepted_via: sharedTypeSel.value === 'policy'
+                        ? document.getElementById('shared-via').value.trim() : '',
                     file_name: file.name,
                     file_path: path,
                     mime_type: file.type || null,
@@ -435,6 +535,7 @@
                 showToast('Document uploaded');
                 document.getElementById('shared-doc-form').reset();
                 document.getElementById('shared-file-name').textContent = '';
+                document.getElementById('shared-via-group').classList.add('hidden');
                 prog.textContent = '';
                 loadSharedDocs();
             } catch (err) {
@@ -761,6 +862,7 @@
         });
 
         // ---------- Boot ----------
+        renderPolicies();
         loadTraining();
         loadDocuments();
         if (isAdmin) { loadPeople(); loadManage(); loadSharedDocs(); }

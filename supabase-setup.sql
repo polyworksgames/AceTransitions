@@ -67,10 +67,15 @@ create index if not exists document_uploads_user_idx on public.document_uploads 
 
 -- Shared reference documents uploaded by admins (handbooks, policies, blank
 -- forms...). Visible to all active users; writable by admins only.
+-- doc_type: 'company' = general company documents,
+--           'policy'  = policies & agreements already accepted via a
+--                       third-party app (Connecteam, SimplePractice...).
 create table if not exists public.shared_documents (
   id           uuid primary key default gen_random_uuid(),
   title        text not null,
   description  text not null default '',
+  doc_type     text not null default 'company' check (doc_type in ('company','policy')),
+  accepted_via text not null default '',           -- e.g. 'Connecteam', 'SimplePractice' (policies only)
   file_name    text not null,
   file_path    text not null,                      -- storage path in 'documents' bucket under shared/
   mime_type    text,
@@ -315,6 +320,20 @@ on conflict (url) do update
   set title = excluded.title,
       description = excluded.description,
       sort_order = excluded.sort_order;
+
+-- REPAIR 4: if shared_documents existed before doc_type/accepted_via were
+-- added, add the columns and backfill. Safe to re-run:
+alter table public.shared_documents add column if not exists doc_type text not null default 'company';
+alter table public.shared_documents add column if not exists accepted_via text not null default '';
+do $$
+begin
+  -- widen the check constraint if the old (missing) version exists
+  alter table public.shared_documents drop constraint if exists shared_documents_doc_type_check;
+  alter table public.shared_documents
+    add constraint shared_documents_doc_type_check
+    check (doc_type in ('company','policy'));
+exception when duplicate_object then null; -- constraint already there
+end $$;
 
 -- ----------------------------------------------------------------------------
 -- 5b) REPAIR: create profiles for accounts that signed up BEFORE this setup ran

@@ -51,6 +51,30 @@
     gap: 12px;
     font-size: .92rem;
 }
+.portal-links {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex: 1;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+.portal-links a {
+    color: rgba(255, 255, 255, .85);
+    text-decoration: none;
+    font-size: .9rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 2px;
+    border-bottom: 2px solid transparent;
+    transition: color .15s, border-color .15s;
+}
+.portal-links a:hover {
+    color: var(--white);
+    border-bottom-color: var(--primary-gold);
+}
 .role-badge {
     background: var(--primary-gold);
     color: var(--white);
