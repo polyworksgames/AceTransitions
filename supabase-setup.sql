@@ -13,7 +13,7 @@ create table if not exists public.profiles (
   id          uuid primary key references auth.users(id) on delete cascade,
   email       text not null,
   full_name   text not null default '',
-  role        text not null default 'employee' check (role in ('employee','admin')),
+  role        text not null default 'employee' check (role in ('employee','level1','admin')),
   active      boolean not null default false,      -- admin must activate
   created_at  timestamptz not null default now()
 );
@@ -361,6 +361,13 @@ select u.id, d.doc_key
 from auth.users u
 cross join (values ('onboarding_packet'),('master_application')) as d(doc_key)
 on conflict (user_id, doc_key) do nothing;
+
+-- REPAIR 4: if profiles existed before the 'level1' role was added, widen its
+-- check constraint. Safe to re-run:
+alter table public.profiles drop constraint if exists profiles_role_check;
+alter table public.profiles
+  add constraint profiles_role_check
+  check (role in ('employee','level1','admin'));
 
 -- ----------------------------------------------------------------------------
 -- 6) MAKE YOURSELF THE FIRST ADMIN

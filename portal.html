@@ -6,7 +6,7 @@
     <title>Employee Portal | ACE Transitions</title>
     <meta name="robots" content="noindex, nofollow">
 
-    <link rel="icon" type="image/png" href="TLCLogo.png">
+    <link rel="icon" type="image/png" href="assets/acelogo.png">
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/portal.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -16,7 +16,7 @@
     <nav class="portal-nav">
         <div class="portal-nav-inner">
             <div class="portal-brand">
-                <img src="TLCLogo.png" alt="ACE Transitions">
+                <img src="assets/acelogo.png" alt="ACE Transitions">
                 <span>Employee Portal</span>
             </div>
             <div class="portal-links">
@@ -39,6 +39,7 @@
             <div class="tabs" id="tabs">
                 <button class="tab active" data-tab="training"><i class="fas fa-video"></i> Training Videos</button>
                 <button class="tab" data-tab="documents"><i class="fas fa-file-signature"></i> My Documents</button>
+                <button class="tab grip-only hidden" data-tab="grip"><i class="fas fa-hands-holding-circle"></i> GRIP</button>
                 <button class="tab admin-only hidden" data-tab="people"><i class="fas fa-users"></i> People Progress</button>
                 <button class="tab admin-only hidden" data-tab="manage"><i class="fas fa-sliders-h"></i> Manage Videos</button>
                 <button class="tab admin-only hidden" data-tab="shared"><i class="fas fa-folder-open"></i> Manage Documents</button>
@@ -76,6 +77,16 @@
 
                 <h3 class="uploads-heading"><i class="fas fa-cloud-arrow-up"></i> Uploads</h3>
                 <div id="uploads-list" class="cards-list"></div>
+            </section>
+
+            <!-- ===================== GRIP (all except level1) ===================== -->
+            <section id="tab-grip" class="tab-panel hidden">
+                <div class="panel-head">
+                    <h2>GRIP</h2>
+                </div>
+                <div class="grip-embed-wrap">
+                    <script type="text/javascript" src="https://form.jotform.com/jsform/262636701963058"></script>
+                </div>
             </section>
 
             <!-- ===================== ADMIN: PEOPLE PROGRESS ===================== -->
@@ -211,10 +222,14 @@
         const me = await requireUser();
         if (!me) return;
         const isAdmin = me.role === 'admin';
+        const isLevel1 = me.role === 'level1';
 
         document.getElementById('portal-loading').classList.add('hidden');
         document.getElementById('portal-content').classList.remove('hidden');
         document.getElementById('user-name').textContent = me.full_name || me.email;
+        if (!isLevel1) {
+            document.querySelectorAll('.grip-only').forEach(el => el.classList.remove('hidden'));
+        }
         if (isAdmin) {
             document.getElementById('user-badge').classList.remove('hidden');
             document.querySelectorAll('.admin-only').forEach(el => el.classList.remove('hidden'));
@@ -705,6 +720,7 @@
                 tr.innerHTML = `
                     <td><strong>${escapeHtml(p.full_name || '—')}</strong>
                         ${p.role === 'admin' ? '<span class="badge badge-admin">Admin</span>' : ''}
+                        ${p.role === 'level1' ? '<span class="badge">Level 1</span>' : ''}
                         ${p.id === me.id ? '<span class="badge">You</span>' : ''}</td>
                     <td>${escapeHtml(p.email)}</td>
                     <td>${myComps.length} / ${vids.length}
@@ -718,8 +734,12 @@
                         ${p.id !== me.id ? `
                             <button class="link-btn toggle-active" data-id="${p.id}" data-active="${p.active}">
                                 ${p.active ? 'Deactivate' : 'Activate'}</button>
-                            <button class="link-btn toggle-admin" data-id="${p.id}" data-role="${p.role}">
-                                ${p.role === 'admin' ? 'Make employee' : 'Make admin'}</button>` : ''}
+                            <div class="role-actions">
+                                <button class="link-btn toggle-admin" data-id="${p.id}" data-role="${p.role}">
+                                    ${p.role === 'admin' ? 'Make employee' : 'Make admin'}</button>
+                                <button class="link-btn toggle-level1" data-id="${p.id}" data-role="${p.role}">
+                                    ${p.role === 'level1' ? 'Remove Level 1' : 'Set Level 1'}</button>
+                            </div>` : ''}
                         ${!docs.some(d => d.user_id === p.id) ? `<button class="link-btn assign-doc" data-id="${p.id}">Assign docs</button>` : ''}
                     </td>`;
                 tbody.appendChild(tr);
@@ -761,6 +781,8 @@
                 updateProfile(b.dataset.id, { active: b.dataset.active !== 'true' })));
             tbody.querySelectorAll('.toggle-admin').forEach(b => b.addEventListener('click', () =>
                 updateProfile(b.dataset.id, { role: b.dataset.role === 'admin' ? 'employee' : 'admin' })));
+            tbody.querySelectorAll('.toggle-level1').forEach(b => b.addEventListener('click', () =>
+                updateProfile(b.dataset.id, { role: b.dataset.role === 'level1' ? 'employee' : 'level1' })));
             tbody.querySelectorAll('.assign-doc').forEach(b => b.addEventListener('click', async () => {
                 const { error } = await supabaseClient.from('document_assignments')
                     .insert([
