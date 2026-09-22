@@ -378,6 +378,24 @@
             }
         ];
 
+        // Bundled company documents — shipped with the site, always listed first:
+        const BUNDLED_COMPANY_DOCS = [
+            {
+                title: 'ACE Transitions Employee Handbook (2026)',
+                desc: 'The complete employee handbook \u2014 company overview, expectations, compensation, conduct, time tracking, and procedures for all ACE Transitions team members.',
+                file_path: 'assets/employee-handbook-2026.pdf',
+                file_name: 'ACE_Transitions_Employee_Handbook_2026.pdf',
+                file_size: 348759
+            },
+            {
+                title: 'Peer Support Policies & Procedures Manual',
+                desc: 'Policies and procedures for peer support services \u2014 documentation standards, code of ethics, scope of practice, and compliance requirements.',
+                file_path: 'assets/peer-support-policies-manual.pdf',
+                file_name: 'ACE_Transitions_Peer_Support_Policies_and_Procedures_Manual.pdf',
+                file_size: 225886
+            }
+        ];
+
         function renderPolicies() {
             const wrap = document.getElementById('policies-list');
             if (!wrap) return;
@@ -436,32 +454,39 @@
             return 'fa-file-lines';
         }
 
+        function sharedDocCard(d, isBundled) {
+            const card = document.createElement('div');
+            card.className = 'manage-card';
+            const meta = `${escapeHtml(d.file_name)}${d.file_size ? ' · ' + (d.file_size / 1024 / 1024).toFixed(2) + ' MB' : ''}${isBundled ? '' : ' · added ' + new Date(d.created_at).toLocaleDateString()}`;
+            card.innerHTML = `
+                    <div class="manage-info" style="display:flex; gap:12px; align-items:flex-start;">
+                        <i class="fas ${isBundled ? 'fa-book' : fileIcon(d.mime_type, d.file_name)}" style="font-size:1.4rem; color:var(--light-blue); margin-top:3px;"></i>
+                        <div>
+                            <strong>${escapeHtml(d.title)}</strong>
+                            <p>${escapeHtml(d.description || '')}</p>
+                            <span class="manage-url">${meta}</span>
+                        </div>
+                    </div>
+                    <div class="manage-actions">
+                        ${isBundled
+                            ? `<a class="btn btn-small btn-secondary" href="${d.file_path}" target="_blank" rel="noopener"><i class="fas fa-eye"></i> View</a>
+                               <a class="btn btn-small btn-muted" href="${d.file_path}" download="${escapeHtml(d.file_name)}"><i class="fas fa-download"></i> Download</a>`
+                            : `<button class="btn btn-small btn-secondary view-shared-btn" data-path="${d.file_path}">
+                                   <i class="fas fa-eye"></i> View</button>
+                               <button class="btn btn-small btn-muted dl-shared-btn" data-path="${d.file_path}" data-name="${escapeHtml(d.file_name)}">
+                                   <i class="fas fa-download"></i> Download</button>`}
+                    </div>`;
+            return card;
+        }
+
         function renderSharedDocs() {
             const wrap = document.getElementById('shared-docs-list');
             if (!wrap) return;
             const company = sharedDocs.filter(d => (d.doc_type || 'company') === 'company');
-            wrap.innerHTML = company.length ? '' :
+            wrap.innerHTML = (BUNDLED_COMPANY_DOCS.length + company.length) ? '' :
                 '<p class="empty-note">No company documents have been shared yet.</p>';
-            company.forEach(d => {
-                const card = document.createElement('div');
-                card.className = 'manage-card';
-                card.innerHTML = `
-                    <div class="manage-info" style="display:flex; gap:12px; align-items:flex-start;">
-                        <i class="fas ${fileIcon(d.mime_type, d.file_name)}" style="font-size:1.4rem; color:var(--light-blue); margin-top:3px;"></i>
-                        <div>
-                            <strong>${escapeHtml(d.title)}</strong>
-                            <p>${escapeHtml(d.description || '')}</p>
-                            <span class="manage-url">${escapeHtml(d.file_name)} · ${d.file_size ? (d.file_size / 1024 / 1024).toFixed(2) + ' MB' : ''} · added ${new Date(d.created_at).toLocaleDateString()}</span>
-                        </div>
-                    </div>
-                    <div class="manage-actions">
-                        <button class="btn btn-small btn-secondary view-shared-btn" data-path="${d.file_path}">
-                            <i class="fas fa-eye"></i> View</button>
-                        <button class="btn btn-small btn-muted dl-shared-btn" data-path="${d.file_path}" data-name="${escapeHtml(d.file_name)}">
-                            <i class="fas fa-download"></i> Download</button>
-                    </div>`;
-                wrap.appendChild(card);
-            });
+            BUNDLED_COMPANY_DOCS.forEach(d => wrap.appendChild(sharedDocCard(d, true)));
+            company.forEach(d => wrap.appendChild(sharedDocCard(d, false)));
             wrap.querySelectorAll('.view-shared-btn').forEach(b =>
                 b.addEventListener('click', () => downloadCompletedPacket(b.dataset.path)));
             wrap.querySelectorAll('.dl-shared-btn').forEach(b =>
