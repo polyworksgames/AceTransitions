@@ -84,8 +84,8 @@
                 <div class="panel-head">
                     <h2>GRIP</h2>
                 </div>
-                <div class="grip-embed-wrap">
-                    <script type="text/javascript" src="https://form.jotform.com/jsform/262636701963058"></script>
+                <div class="grip-embed-wrap" id="grip-embed-wrap">
+                    <!-- Jotform is injected here the first time this tab is opened -->
                 </div>
             </section>
 
@@ -242,7 +242,27 @@
             document.querySelectorAll('.tab-panel').forEach(x => x.classList.add('hidden'));
             t.classList.add('active');
             document.getElementById('tab-' + t.dataset.tab).classList.remove('hidden');
+            if (t.dataset.tab === 'grip') loadGripForm();
         }));
+
+        // GRIP (Jotform) is injected the first time the tab is opened. Loading it
+        // at page start made Jotform measure its iframe while the form was hidden
+        // (display:none), and the embed then rendered stuck at a short fixed
+        // height — cut off. Injecting while the tab is visible lets it size
+        // correctly, and speeds up the portal's initial load too.
+        let gripLoaded = false;
+        function loadGripForm() {
+            if (gripLoaded) return;
+            gripLoaded = true;
+            const wrap = document.getElementById('grip-embed-wrap');
+            if (!wrap) return;
+            const note = wrap.querySelector('[data-grip-loading]');
+            if (note) note.remove();
+            const s = document.createElement('script');
+            s.type = 'text/javascript';
+            s.src = 'https://form.jotform.com/jsform/262636701963058';
+            wrap.appendChild(s);
+        };
 
         // ---------- State ----------
         let videos = [], completions = new Set(), assignments = [], uploads = [], sharedDocs = [];
