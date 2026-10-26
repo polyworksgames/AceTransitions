@@ -52,6 +52,28 @@ window.downloadCompletedPacket = async function downloadCompletedPacket(path) {
   window.open(data.signedUrl, '_blank', 'noopener');
 };
 
+// Mirror one of the user's documents to the company Google Drive.
+// Best-effort: failures are toasted but never block the user's flow.
+// docType: 'onboarding_packet' | 'master_application' | 'identification'
+//          | 'credentials' | 'form:<fillable_forms.id>'
+window.mirrorToDrive = async function mirrorToDrive(path, docType, mime) {
+  try {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (!session) return;
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/mirror-to-drive`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ path, doc_type: docType, mime: mime || 'application/pdf' }),
+    });
+    if (!res.ok) console.warn('Drive mirror failed:', (await res.text()).slice(0, 200));
+  } catch (err) {
+    console.warn('Drive mirror error:', err);
+  }
+};
+
 // Tiny toast helper
 window.showToast = function showToast(msg, isError = false) {
   const t = document.createElement('div');

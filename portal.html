@@ -6,7 +6,7 @@
     <title>Employee Portal | ACE Transitions</title>
     <meta name="robots" content="noindex, nofollow">
 
-    <link rel="icon" type="image/png" href="TLCLogo.png">
+    <link rel="icon" type="image/png" href="TLCLogo.png?v=2">
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/portal.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -16,7 +16,7 @@
     <nav class="portal-nav">
         <div class="portal-nav-inner">
             <div class="portal-brand">
-                <img src="TLCLogo.png" alt="ACE Transitions">
+                <img src="TLCLogo.png?v=2" alt="ACE Transitions">
                 <span>Employee Portal</span>
             </div>
             <div class="portal-links">
@@ -27,6 +27,9 @@
             <div class="portal-user">
                 <span id="user-badge" class="role-badge hidden">Admin</span>
                 <span id="user-name">…</span>
+                <button id="drive-sync-btn" class="btn btn-small btn-secondary admin-only hidden" title="Mirror every employee's documents to the company Google Drive">
+                    <i class="fab fa-google-drive"></i> Sync all to Drive
+                </button>
                 <button id="signout-btn" class="btn btn-small btn-secondary">Sign Out</button>
             </div>
         </div>
@@ -66,8 +69,12 @@
                 <div id="documents-list" class="cards-list"></div>
 
                 <h3 class="uploads-heading"><i class="fas fa-scale-balanced"></i> Policies &amp; Agreements</h3>
-                <p class="uploads-subnote">These don\u2019t need a signature here \u2014 you agreed to them when you set up your
-                   Connecteam and/or SimplePractice account. Keep copies for your reference.</p>
+                <p class="uploads-subnote">These dont need a signature here you agreed to them when you set up your
+                   For Connecteam, SimplePractice, and any other software applications or platforms used by our organization or sister companies, employees should retain copies of the applicable policies, terms, privacy notices, consent forms, and other relevant documentation for their records and reference.
+
+You may also review the software provider’s official policy, privacy, terms, and consent pages to access the most current and complete versions of these documents.
+
+The summaries provided by our organization are intended as a general overview and do not replace the software provider’s official policies, terms, privacy notices, or consent documents. When there is a difference between a summary and the provider’s official documentation, refer to the current official document.</p>
                 <div id="policies-list" class="cards-list"></div>
 
                 <h3 class="uploads-heading"><i class="fas fa-folder-open"></i> Company Documents</h3>
@@ -152,6 +159,46 @@
                     </form>
                 </div>
                 <div id="shared-manage-list" class="cards-list"></div>
+
+                <!-- ---------- Fillable forms ---------- -->
+                <div class="video-editor" style="margin-top:32px;">
+                    <h3><i class="fas fa-pen-to-square"></i> Fillable Forms</h3>
+                    <p class="uploads-subnote">Upload blank PDFs that have real form fields. They appear in every
+                       employee's Documents tab as online forms they fill and submit here — completed PDFs are saved
+                       privately and visible to admins. PDFs without form fields are rejected.</p>
+                    <form id="fillable-form-upload">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="ff-title">Title</label>
+                                <input type="text" id="ff-title" required placeholder="e.g. Timesheet — September">
+                            </div>
+                            <div class="form-group form-group-small">
+                                <label for="ff-sort">Order</label>
+                                <input type="number" id="ff-sort" value="0">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="ff-desc">Description (optional)</label>
+                            <textarea id="ff-desc" rows="2" placeholder="What is this form for?"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="ff-file">PDF with fillable fields</label>
+                            <input type="file" id="ff-file" required accept="application/pdf,.pdf" hidden>
+                            <label for="ff-file" class="btn btn-secondary upload-label" id="ff-file-label">
+                                <i class="fas fa-file-pdf"></i> Choose PDF…
+                            </label>
+                            <span id="ff-file-name" class="upload-name" style="margin-left:8px;"></span>
+                            <span id="ff-check" class="upload-hint" style="margin-left:8px;"></span>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary" id="ff-upload-btn">
+                                <i class="fas fa-upload"></i> Add form
+                            </button>
+                            <span id="ff-progress" class="upload-hint"></span>
+                        </div>
+                    </form>
+                </div>
+                <div id="ff-manage-list" class="cards-list"></div>
             </section>
 
             <!-- ===================== ADMIN: MANAGE VIDEOS ===================== -->
@@ -205,6 +252,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
     <script src="js/config.js"></script>
     <script>
     (async () => {
@@ -221,6 +269,32 @@
         }
         document.getElementById('signout-btn').addEventListener('click', portalSignOut);
 
+        // ---------- Admin: Google Drive sync ----------
+        document.getElementById('drive-sync-btn').addEventListener('click', async (e) => {
+            const btn = e.currentTarget;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing…';
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                const res = await fetch(`${SUPABASE_URL}/functions/v1/mirror-to-drive`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+                    body: '{}'
+                });
+                const out = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(out.error || res.statusText);
+                const fails = (out.results || []).filter(r => !r.ok).length;
+                showToast(fails
+                    ? `Drive sync finished with ${fails} problem${fails === 1 ? '' : 's'} — check the function logs`
+                    : `Drive sync complete — ${out.count ?? 0} documents mirrored`);
+            } catch (err) {
+                showToast('Drive sync failed: ' + (err.message || err), true);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fab fa-google-drive"></i> Sync all to Drive';
+            }
+        });
+
         // ---------- Tabs ----------
         document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
             document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
@@ -230,7 +304,7 @@
         }));
 
         // ---------- State ----------
-        let videos = [], completions = new Set(), assignments = [], uploads = [], sharedDocs = [];
+        let videos = [], completions = new Set(), assignments = [], uploads = [], sharedDocs = [], forms = [];
         const myCompletionsKey = () => completions;
 
         // ---------- Employee: training videos ----------
@@ -335,6 +409,17 @@
             renderDocuments();
             loadUploads();
             loadSharedDocs();
+            loadForms();
+        }
+
+        // ---------- Fillable forms (admin-added, filled in packet.html) ----------
+        async function loadForms() {
+            const { data, error } = await supabaseClient
+                .from('fillable_forms').select('*').eq('is_active', true).order('sort_order');
+            if (error) return showToast('Could not load fillable forms: ' + error.message, true);
+            forms = data || [];
+            renderDocuments();
+            if (isAdmin) renderFormsManage();
         }
 
         // ---------- Shared (admin-uploaded) documents ----------
@@ -546,6 +631,110 @@
             }
         });
 
+        // ---------- Admin: manage fillable forms ----------
+        const ffFileInput = document.getElementById('ff-file');
+        ffFileInput.addEventListener('change', () => {
+            document.getElementById('ff-file-name').textContent =
+                ffFileInput.files.length ? ffFileInput.files[0].name : '';
+            document.getElementById('ff-check').textContent = '';
+        });
+
+        // Reads the PDF and reports how many fillable fields it has (null if unreadable/none).
+        async function probePdfFields(file) {
+            try {
+                const pdf = await PDFLib.PDFDocument.load(await file.arrayBuffer(), { ignoreEncryption: true });
+                return pdf.getForm().getFields().length;
+            } catch (_) {
+                return null;
+            }
+        }
+
+        function renderFormsManage() {
+            const wrap = document.getElementById('ff-manage-list');
+            if (!wrap) return;
+            wrap.innerHTML = forms.length ? '' :
+                '<p class="empty-note">No fillable forms yet — add your first PDF form above.</p>';
+            forms.forEach(f => {
+                const card = document.createElement('div');
+                card.className = 'manage-card';
+                card.innerHTML = `
+                    <div class="manage-info">
+                        <strong>${escapeHtml(f.title)}</strong> <span class="badge">order ${f.sort_order}</span>
+                        <p>${escapeHtml(f.description || '')}</p>
+                        <span class="manage-url">${escapeHtml(f.file_name)}${f.file_size ? ' · ' + (f.file_size / 1024 / 1024).toFixed(2) + ' MB' : ''} · added ${new Date(f.created_at).toLocaleDateString()}</span>
+                    </div>
+                    <div class="manage-actions">
+                        <a class="btn btn-small btn-secondary" href="packet.html?form=${f.id}" target="_blank" rel="noopener">
+                            <i class="fas fa-eye"></i> Preview</a>
+                        <button class="btn btn-small btn-danger ff-del" data-id="${f.id}" data-path="${f.file_path}">Delete</button>
+                    </div>`;
+                wrap.appendChild(card);
+            });
+            wrap.querySelectorAll('.ff-del').forEach(b => b.addEventListener('click', async () => {
+                if (!confirm('Delete this form? Employees will no longer see it, and its completion status will be removed.')) return;
+                const { error: stoErr } = await supabaseClient.storage.from('documents').remove([b.dataset.path]);
+                if (stoErr) showToast('Could not delete file: ' + stoErr.message, true);
+                const { error: dbErr } = await supabaseClient.from('fillable_forms').delete().eq('id', b.dataset.id);
+                if (dbErr) return showToast(dbErr.message, true);
+                showToast('Form deleted');
+                loadForms();
+            }));
+        }
+
+        document.getElementById('fillable-form-upload').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const file = ffFileInput.files[0];
+            if (!file) return showToast('Choose a PDF first', true);
+            if (file.size > 15 * 1024 * 1024) return showToast('PDF must be under 15 MB', true);
+            const btn = document.getElementById('ff-upload-btn');
+            const prog = document.getElementById('ff-progress');
+            const check = document.getElementById('ff-check');
+            btn.disabled = true;
+            prog.textContent = 'Checking PDF…';
+            try {
+                const fieldCount = await probePdfFields(file);
+                if (fieldCount === null) throw new Error('This file could not be read as a PDF.');
+                if (fieldCount === 0) throw new Error('This PDF has no fillable form fields. Export it with form fields enabled (AcroForm), then try again.');
+                prog.textContent = 'Uploading…';
+                const safe = file.name.replace(/[^\w.\- ]/g, '_');
+                const path = `forms/${Date.now()}-${safe}`;
+                const { error: upErr } = await supabaseClient.storage
+                    .from('documents')
+                    .upload(path, file, { contentType: 'application/pdf' });
+                if (upErr) throw new Error(upErr.message);
+                const { data: inserted, error: dbErr } = await supabaseClient.from('fillable_forms').insert({
+                    title: document.getElementById('ff-title').value.trim(),
+                    description: document.getElementById('ff-desc').value.trim(),
+                    sort_order: parseInt(document.getElementById('ff-sort').value, 10) || 0,
+                    file_name: file.name,
+                    file_path: path,
+                    file_size: file.size,
+                    created_by: me.id
+                }).select().single();
+                if (dbErr) throw new Error(dbErr.message);
+                // Assign to any accounts created before this form existed
+                // (new accounts get it automatically via the DB trigger).
+                const { error: asgErr } = await supabaseClient
+                    .from('document_assignments')
+                    .insert((await supabaseClient.from('profiles').select('id')).data
+                        .filter(Boolean)
+                        .map(p => ({ user_id: p.id, doc_key: 'form:' + inserted.id }))
+                    );
+                if (asgErr && asgErr.code !== '23505') console.warn('assign-backfill:', asgErr);
+                showToast(`Form added (${fieldCount} fillable field${fieldCount === 1 ? '' : 's'})`);
+                document.getElementById('fillable-form-upload').reset();
+                document.getElementById('ff-file-name').textContent = '';
+                check.textContent = '';
+                prog.textContent = '';
+                loadForms();
+            } catch (err) {
+                showToast(err.message, true);
+                prog.textContent = '';
+            } finally {
+                btn.disabled = false;
+            }
+        });
+
         async function loadUploads() {
             const { data, error } = await supabaseClient
                 .from('document_uploads')
@@ -611,6 +800,7 @@
             const files = [...inp.files];
             if (!files.length) return;
             let ok = 0;
+            const okPaths = []; // [{path, mime}] — mirrored to Drive after the loop
             for (const f of files) {
                 if (f.size > 10 * 1024 * 1024) {
                     showToast(`${f.name} is larger than 10 MB — skipped`, true);
@@ -632,9 +822,14 @@
                         file_size: f.size
                     });
                 if (dbErr) { showToast(`Could not record ${f.name}: ${dbErr.message}`, true); continue; }
+                okPaths.push({ path, mime: f.type || 'application/octet-stream' });
                 ok++;
             }
-            if (ok) showToast(`${ok} file${ok === 1 ? '' : 's'} uploaded`);
+            if (ok) {
+                showToast(`${ok} file${ok === 1 ? '' : 's'} uploaded`);
+                // Mirror to the company Drive (best-effort, never blocks)
+                okPaths.forEach(({ path, mime }) => mirrorToDrive(path, cat, mime));
+            }
             inp.value = '';
             loadUploads();
         }
@@ -662,6 +857,31 @@
                             ? `<button class="btn btn-secondary view-doc-btn" data-path="${row.file_path}"><i class="fas fa-eye"></i> View my PDF</button>
                                <a class="btn btn-muted" href="packet.html?doc=${docKey}"><i class="fas fa-pen"></i> Fill again</a>`
                             : `<a class="btn btn-primary" href="packet.html?doc=${docKey}"><i class="fas fa-pen-to-square"></i> Complete</a>`}
+                    </div>`;
+                list.appendChild(card);
+            });
+            // Admin-added fillable forms (same flow, dynamic PDF + fields)
+            forms.forEach(f => {
+                const docKey = 'form:' + f.id;
+                const row = assignments.find(a => a.doc_key === docKey);
+                const done = row && row.status === 'complete';
+                const card = document.createElement('div');
+                card.className = 'doc-card ' + (done ? 'doc-done' : 'doc-pending');
+                card.innerHTML = `
+                    <div class="doc-icon"><i class="fas fa-pen-to-square"></i></div>
+                    <div class="doc-info">
+                        <h3>${escapeHtml(f.title)}
+                            ${done ? '<span class="badge badge-done"><i class="fas fa-check"></i> Complete</span>'
+                                   : '<span class="badge badge-pending">Pending</span>'}</h3>
+                        <p>${escapeHtml(f.description || 'Complete this form online — your answers are written into the official PDF and saved privately.')}</p>
+                        ${done && row.completed_at ? `<p class="doc-meta"><i class="fas fa-calendar-check"></i> Submitted
+                                    ${new Date(row.completed_at).toLocaleString()}</p>` : ''}
+                    </div>
+                    <div class="doc-actions">
+                        ${done
+                            ? `<button class="btn btn-secondary view-doc-btn" data-path="${row.file_path}"><i class="fas fa-eye"></i> View my PDF</button>
+                               <a class="btn btn-muted" href="packet.html?form=${f.id}"><i class="fas fa-pen"></i> Fill again</a>`
+                            : `<a class="btn btn-primary" href="packet.html?form=${f.id}"><i class="fas fa-pen-to-square"></i> Complete</a>`}
                     </div>`;
                 list.appendChild(card);
             });
@@ -869,7 +1089,7 @@
 
         // Realtime-ish refresh when tab becomes visible again
         document.addEventListener('visibilitychange', () => {
-            if (!document.hidden) { loadTraining(); loadDocuments(); if (isAdmin) { loadPeople(); loadSharedDocs(); } }
+            if (!document.hidden) { loadTraining(); loadDocuments(); if (isAdmin) { loadPeople(); loadSharedDocs(); loadForms(); } }
         });
     })();
 

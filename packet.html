@@ -6,7 +6,7 @@
     <title>Onboarding Packet | ACE Transitions</title>
     <meta name="robots" content="noindex, nofollow">
 
-    <link rel="icon" type="image/png" href="TLCLogo.png">
+    <link rel="icon" type="image/png" href="TLCLogo.png?v=2">
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/portal.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -20,7 +20,7 @@
     <nav class="portal-nav">
         <div class="portal-nav-inner">
             <div class="portal-brand">
-                <img src="TLCLogo.png" alt="ACE Transitions">
+                <img src="TLCLogo.png?v=2" alt="ACE Transitions">
                 <span id="brand-title">Onboarding Packet</span>
             </div>
             <div class="portal-links">
@@ -74,10 +74,15 @@
         document.getElementById('user-name').textContent = me.full_name || me.email;
         document.getElementById('signout-btn').addEventListener('click', portalSignOut);
 
-        // Which document are we filling? (?doc=master_application or default onboarding_packet)
-        const docKey = new URLSearchParams(location.search).get('doc') === 'master_application'
-            ? 'master_application' : 'onboarding_packet';
-        const DOC_LABEL = docKey === 'master_application'
+        // Which document are we filling?
+        //   ?doc=onboarding_packet | master_application  — built-in documents
+        //   ?form=<fillable_forms.id>                    — admin-uploaded fillable form
+        const params = new URLSearchParams(location.search);
+        const formId = params.get('form');
+        const docKey = formId ? 'form:' + formId
+            : (params.get('doc') === 'master_application' ? 'master_application' : 'onboarding_packet');
+        const isCustomForm = !!formId;
+        let DOC_LABEL = docKey === 'master_application'
             ? 'ACE Transitions Master Application' : '1099 Independent Contractor Onboarding Packet';
         document.getElementById('packet-title').textContent = DOC_LABEL;
         document.getElementById('brand-title').textContent = docKey === 'master_application' ? 'Master Application' : 'Onboarding Packet';
@@ -295,10 +300,75 @@
         ];
 
         const ACTIVE_SECTIONS = docKey === 'master_application' ? MASTER_APP_SECTIONS : SECTIONS;
-        const PDF_PATH = docKey === 'master_application' ? 'assets/master-application.pdf' : 'assets/onboarding-packet.pdf';
+        let PDF_PATH = docKey === 'master_application' ? 'assets/master-application.pdf' : 'assets/onboarding-packet.pdf';
+
+        // ---------------------------------------------------------------------
+        // Custom admin-uploaded form (?form=<id>): fetch the PDF and build the
+        // schema dynamically from its AcroForm fields.
+        // ---------------------------------------------------------------------
+        if (isCustomForm) {
+            const showLoadError = (msg) => {
+                document.getElementById('packet-loading').innerHTML =
+                    '<i class="fas fa-triangle-exclamation"></i> ' + escapeHtml(msg);
+                document.getElementById('packet-loading').classList.remove('hidden');
+                document.getElementById('packet-content').classList.add('hidden');
+            };
+            const { data: formRow, error: formErr } = await supabaseClient
+                .from('fillable_forms').select('*').eq('id', formId).maybeSingle();
+            if (formErr || !formRow) {
+                showLoadError('This form could not be found (it may have been deleted).');
+                return;
+            }
+            DOC_LABEL = formRow.title;
+            document.getElementById('packet-title').textContent = formRow.title;
+            document.getElementById('brand-title').textContent = formRow.title;
+            const { data: pdfData, error: pdfErr } = await supabaseClient.storage
+                .from('documents').download(formRow.file_path);
+            if (pdfErr) {
+                showLoadError('Could not load this form\u2019s PDF: ' + pdfErr.message);
+                return;
+            }
+            CUSTOM_PDF_BYTES = await pdfData.arrayBuffer();
+
+            const pdf = await PDFLib.PDFDocument.load(CUSTOM_PDF_BYTES, { ignoreEncryption: true });
+            const acroFields = pdf.getForm().getFields();
+            if (!acroFields.length) {
+                showLoadError('This PDF has no fillable form fields, so it can\u2019t be completed online.');
+                return;
+            }
+
+            // Group fields into a single section; checkboxes become Yes options.
+            const nice = n => n.replace(/[_\-\.]+/g, ' ').replace(/\s+/g, ' ').trim()
+                .replace(/\b\w/g, c => c.toUpperCase());
+            const fields = [];
+            acroFields.forEach((fld, i) => {
+                const name = fld.getName();
+                if (fld instanceof PDFLib.PDFCheckBox)
+                    fields.push({ f: name, t: 'check', l: nice(name) || ('Option ' + (i + 1)) });
+                else if (fld instanceof PDFLib.PDFDropdown || fld instanceof PDFLib.PDFOptionList)
+                    fields.push({ f: name, t: 'dropdown', l: nice(name), opts: fld.getOptions() });
+                else if (fld instanceof PDFLib.PDFRadioGroup)
+                    fields.push({ f: name, t: 'radio', l: nice(name), opts: fld.getOptions() });
+                else if (fld instanceof PDFLib.PDFButton || fld instanceof PDFLib.PDFSignature)
+                    return; // push buttons / signature placeholders carry no data — skip
+                else
+                    fields.push({ f: name, t: 'text', l: nice(name) });
+            });
+            ACTIVE_SECTIONS.length = 0;
+            ACTIVE_SECTIONS.push({
+                title: formRow.title,
+                hint: formRow.description || 'Complete all fields, then submit.',
+                fields
+            });
+            ACTIVE_SECTIONS.push({ title: 'Signature', hint: 'Confirm and submit your form.', fields: [
+                { f: '__sig_name', t: 'text', l: 'Typed Signature (full legal name)', req: true, sig: true, pre: () => me.full_name },
+                { f: '__sig_date', t: 'date', l: 'Date', req: true }
+            ]});
+        }
 
         // Auto-set fields the employee shouldn't touch:
         const AUTO_FILL = { p7_return_to: 'info@acetransitions.org', p7_submit_portal: true };
+        let CUSTOM_PDF_BYTES = null; // set when filling an admin-uploaded form
 
         // ---------------------------------------------------------------------
         // Render the form
@@ -308,28 +378,35 @@
             const det = document.createElement('details');
             det.className = 'packet-section';
             det.open = i === 0;
-            det.innerHTML = `<summary><span class="section-title">${sec.title}</span>
-                <span class="section-hint">${sec.hint}</span></summary>
+            det.innerHTML = `<summary><span class="section-title">${escapeHtml(sec.title)}</span>
+                <span class="section-hint">${escapeHtml(sec.hint)}</span></summary>
                 <div class="section-body"></div>`;
             const body = det.querySelector('.section-body');
             sec.fields.forEach(fl => {
                 if (fl.t === 'sub') {
-                    body.insertAdjacentHTML('beforeend', `<h4 class="field-sub">${fl.l}</h4>`);
+                    body.insertAdjacentHTML('beforeend', `<h4 class="field-sub">${escapeHtml(fl.l)}</h4>`);
                     return;
                 }
-                if (fl.stmt) body.insertAdjacentHTML('beforeend', `<p class="stmt">${fl.stmt}</p>`);
+                if (fl.stmt) body.insertAdjacentHTML('beforeend', `<p class="stmt">${escapeHtml(fl.stmt)}</p>`);
                 const row = document.createElement('div');
                 row.className = 'form-group' + (fl.wide || fl.t === 'area' ? ' form-wide' : '') + (fl.t === 'check' ? ' form-check' : '');
+                const fName = escapeHtml(fl.f), fLabel = escapeHtml(fl.l);
                 if (fl.t === 'check') {
-                    row.innerHTML = `<label class="check-label"><input type="checkbox" data-pdf="${fl.f}">
-                        <span>${fl.l}${fl.req ? ' <em class="req">*</em>' : ''}</span></label>`;
+                    row.innerHTML = `<label class="check-label"><input type="checkbox" data-pdf="${fName}">
+                        <span>${fLabel}${fl.req ? ' <em class="req">*</em>' : ''}</span></label>`;
                 } else if (fl.t === 'area') {
-                    row.innerHTML = `<label for="pf_${fl.f}">${fl.l}</label>
-                        <textarea id="pf_${fl.f}" data-pdf="${fl.f}" rows="3"></textarea>`;
+                    row.innerHTML = `<label for="pf_${CSS.escape(fl.f)}">${fLabel}</label>
+                        <textarea id="pf_${CSS.escape(fl.f)}" data-pdf="${fName}" rows="3"></textarea>`;
+                } else if (fl.t === 'dropdown' || fl.t === 'radio') {
+                    row.innerHTML = `<label for="pf_${CSS.escape(fl.f)}">${fLabel}</label>
+                        <select id="pf_${CSS.escape(fl.f)}" data-pdf="${fName}" data-kind="${fl.t}">
+                            <option value="">— Select —</option>
+                            ${(fl.opts || []).map(o => `<option value="${escapeHtml(String(o))}">${escapeHtml(String(o))}</option>`).join('')}
+                        </select>`;
                 } else {
                     const type = fl.t === 'date' ? 'date' : 'text';
-                    row.innerHTML = `<label for="pf_${fl.f}">${fl.l}${fl.req ? ' <em class="req">*</em>' : ''}</label>
-                        <input type="${type}" id="pf_${fl.f}" data-pdf="${fl.f}">`;
+                    row.innerHTML = `<label for="pf_${CSS.escape(fl.f)}">${fLabel}${fl.req ? ' <em class="req">*</em>' : ''}</label>
+                        <input type="${type}" id="pf_${CSS.escape(fl.f)}" data-pdf="${fName}">`;
                 }
                 body.appendChild(row);
                 if (fl.pre) {
@@ -350,6 +427,8 @@
             document.querySelector('[data-pdf="p1_date"]').value = today;
         if (document.querySelector('[data-pdf="p9_date"]'))
             document.querySelector('[data-pdf="p9_date"]').value = today;
+        const sigDate = document.querySelector('[data-pdf="__sig_date"]');
+        if (sigDate) sigDate.value = today;
 
         // Draft autosave (localStorage) + restore
         const DRAFT_KEY = 'ace_packet_draft_v1_' + docKey;
@@ -393,10 +472,12 @@
 
             // Validate required fields
             const missing = [];
+            const byPdfName = {};
+            inputs().forEach(el => byPdfName[el.dataset.pdf] = el);
             ACTIVE_SECTIONS.forEach(sec => sec.fields.forEach(fl => {
                 if (!fl.req) return;
-                const el = document.querySelector(`[data-pdf="${fl.f}"]`);
-                const bad = el.type === 'checkbox' ? !el.checked : el.value.trim() === '';
+                const el = byPdfName[fl.f];
+                const bad = !el || (el.type === 'checkbox' ? !el.checked : el.value.trim() === '');
                 if (bad) missing.push(fl.l);
             }));
             if (missing.length) {
@@ -411,8 +492,10 @@
             btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating your PDF…';
             try {
                 // 1) Fetch and fill the official PDF
-                const bytes = await (await fetch(PDF_PATH)).arrayBuffer();
-                const pdf = await PDFLib.PDFDocument.load(bytes);
+                const bytes = isCustomForm
+                    ? CUSTOM_PDF_BYTES
+                    : await (await fetch(PDF_PATH)).arrayBuffer();
+                const pdf = await PDFLib.PDFDocument.load(bytes, { ignoreEncryption: true });
                 const form = pdf.getForm();
                 const helv = await pdf.embedFont(PDFLib.StandardFonts.Helvetica);
 
@@ -428,12 +511,19 @@
                         on ? c.check() : c.uncheck();
                     } catch (_) {}
                 };
+                const setChoice = (name, value) => {
+                    try { form.getDropdown(name).select(String(value)); return; } catch (_) {}
+                    try { form.getRadioGroup(name).select(String(value)); } catch (_) {}
+                };
 
                 inputs().forEach(el => {
                     if (el.type === 'checkbox') setCheck(el.dataset.pdf, el.checked);
                     else if (el.type === 'date' && el.value) {
                         const [y, m, d] = el.value.split('-');
                         setValue(el.dataset.pdf, `${m}/${d}/${y}`);
+                    }
+                    else if (el.dataset.kind === 'dropdown' || el.dataset.kind === 'radio') {
+                        if (el.value) setChoice(el.dataset.pdf, el.value);
                     }
                     else setValue(el.dataset.pdf, el.value.trim());
                 });
@@ -451,7 +541,7 @@
 
                 const outBytes = await pdf.save();
                 const file = new File([outBytes],
-                    `onboarding-packet-${me.email.replace(/[^a-z0-9]/gi, '-')}-${Date.now()}.pdf`,
+                    `${docKey.replace(/[^a-z0-9]+/gi, '-')}-${me.email.replace(/[^a-z0-9]/gi, '-')}-${Date.now()}.pdf`,
                     { type: 'application/pdf' });
 
                 // 2) Upload to the employee's PRIVATE folder in storage
@@ -477,6 +567,8 @@
                 if (dbErr) throw new Error('Could not mark complete: ' + dbErr.message);
 
                 localStorage.removeItem(DRAFT_KEY);
+                // Mirror the completed PDF to the company Drive (best-effort)
+                mirrorToDrive(path, docKey, 'application/pdf');
                 location.href = 'portal.html?submitted=1';
             } catch (err) {
                 errBox.textContent = err.message || String(err);

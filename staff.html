@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Portal | ACE Transitions</title>
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="icon" type="image/png" href="TLCLogo.png?v=2">
+    <link rel="stylesheet" href="css/staff.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <!-- Supabase + pdf-lib (UMD builds) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.js"></script>
+</head>
+
+<body>
+    <!-- Demo mode banner -->
+    <div id="demo-banner" class="demo-banner" hidden>
+        <i class="fas fa-flask"></i>
+        Demo mode — Supabase isn't configured yet, so login is disabled.
+        Try the PDF filler with the sample form below.
+    </div>
+
+    <!-- ===================== LOGIN ===================== -->
+    <div id="login-view" class="auth-view">
+        <div class="auth-card">
+            <img src="TLCLogo.png?v=2" alt="ACE Transitions logo" class="auth-logo">
+            <h1>Staff Portal</h1>
+            <p class="auth-sub">Sign in to fill out forms and track training.</p>
+
+            <form id="login-form" novalidate>
+                <div class="field">
+                    <label for="login-email">Email</label>
+                    <input type="email" id="login-email" placeholder="you@acetransitions.org" autocomplete="username" required>
+                </div>
+                <div class="field">
+                    <label for="login-password">Password</label>
+                    <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" required>
+                </div>
+                <div id="login-error" class="form-error" hidden></div>
+                <button type="submit" id="login-submit" class="btn btn-primary btn-full">Sign In</button>
+            </form>
+
+            <button id="forgot-link" class="link-btn">Forgot password?</button>
+
+            <div id="reset-form" hidden>
+                <div class="field">
+                    <label for="reset-email">Email</label>
+                    <input type="email" id="reset-email" placeholder="you@acetransitions.org">
+                </div>
+                <button id="reset-send" class="btn btn-secondary btn-full">Send Reset Link</button>
+                <button id="back-to-login" class="link-btn">← Back to sign in</button>
+                <div id="reset-message" class="form-info" hidden></div>
+            </div>
+
+            <a href="index.html" class="back-site"><i class="fas fa-arrow-left"></i> Back to website</a>
+        </div>
+    </div>
+
+    <!-- ===================== DASHBOARD ===================== -->
+    <div id="dashboard-view" hidden>
+        <header class="portal-header">
+            <div class="portal-header-inner">
+                <div class="portal-brand">
+                    <img src="TLCLogo.png?v=2" alt="ACE Transitions logo">
+                    <span>ACE Transitions <small>Staff Portal</small></span>
+                </div>
+                <div class="portal-user">
+                    <div class="portal-user-text">
+                        <span id="user-name"></span>
+                        <span id="user-role" class="role-badge"></span>
+                    </div>
+                    <button id="logout-btn" class="btn btn-ghost">Sign Out</button>
+                </div>
+            </div>
+        </header>
+
+        <nav class="tabs" aria-label="Portal sections">
+            <button class="tab-btn active" data-tab="forms">Forms</button>
+            <button class="tab-btn" data-tab="training">Training</button>
+            <button class="tab-btn" data-tab="admin" id="admin-tab" hidden>Admin</button>
+        </nav>
+
+        <main class="portal-main">
+            <!-- Forms -->
+            <section id="view-forms" class="tab-panel active">
+                <div class="panel-toolbar">
+                    <h2>Forms</h2>
+                    <button id="upload-form-btn" class="btn btn-primary" hidden><i class="fas fa-upload"></i> Add Form</button>
+                </div>
+                <p class="panel-intro">Pick a form to fill out. You'll download the completed PDF and email it to the
+                    admin — nothing is stored on the site.</p>
+                <div id="forms-list" class="card-grid"></div>
+            </section>
+
+            <!-- Filler (shown inside the Forms panel) -->
+            <div id="form-filler-view" hidden>
+                <button id="filler-back" class="link-btn"><i class="fas fa-arrow-left"></i> Back to forms</button>
+                <div class="filler-head">
+                    <h2 id="filler-title"></h2>
+                    <p id="filler-sub"></p>
+                </div>
+                <div id="filler-fields" class="filler-fields"></div>
+                <div class="filler-actions">
+                    <button id="fill-download" class="btn btn-primary"><i class="fas fa-download"></i> Download Filled PDF</button>
+                </div>
+                <div id="filler-message" class="form-info" hidden></div>
+            </div>
+
+            <!-- Training -->
+            <section id="view-training" class="tab-panel">
+                <div id="training-content"></div>
+            </section>
+
+            <!-- Admin -->
+            <section id="view-admin" class="tab-panel">
+                <div class="panel-toolbar">
+                    <h2>Admin</h2>
+                    <button id="staff-create-btn" class="btn btn-primary"><i class="fas fa-user-plus"></i> Add Staff</button>
+                </div>
+                <h3 class="panel-subhead">Staff Accounts</h3>
+                <div id="staff-list"></div>
+                <h3 class="panel-subhead">Training Progress</h3>
+                <div id="progress-table"></div>
+            </section>
+        </main>
+    </div>
+
+    <!-- ===================== MODALS ===================== -->
+
+    <!-- Add form -->
+    <div id="upload-modal" class="modal-backdrop" hidden>
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="upload-title">
+            <h2 id="upload-title">Add a Form</h2>
+            <p class="modal-sub">Upload a <strong>fillable</strong> PDF (one with real form fields).</p>
+            <div class="field">
+                <label for="upload-name">Form name</label>
+                <input type="text" id="upload-name" placeholder="e.g. Intake Assessment">
+            </div>
+            <div class="field">
+                <label for="upload-desc">Description (optional)</label>
+                <input type="text" id="upload-desc" placeholder="What is this form for?">
+            </div>
+            <div class="field">
+                <label for="upload-file">PDF file</label>
+                <input type="file" id="upload-file" accept="application/pdf">
+            </div>
+            <div class="field">
+                <label for="upload-labels">Field labels (optional JSON)</label>
+                <textarea id="upload-labels" rows="4"
+                    placeholder='{ "pdf_field_name": "Friendly Label" }'></textarea>
+                <small class="field-hint">Maps cryptic PDF field names to friendly labels. See SUPABASE_SETUP.md.</small>
+            </div>
+            <div id="upload-error" class="form-error" hidden></div>
+            <div class="modal-actions">
+                <button id="upload-cancel" class="btn btn-ghost">Cancel</button>
+                <button id="upload-save" class="btn btn-primary">Upload Form</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add staff -->
+    <div id="staff-modal" class="modal-backdrop" hidden>
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="staff-title">
+            <h2 id="staff-title">Add Staff Member</h2>
+            <div class="field">
+                <label for="staff-name">Full name</label>
+                <input type="text" id="staff-name" placeholder="e.g. Jane Doe">
+            </div>
+            <div class="field">
+                <label for="staff-email">Email</label>
+                <input type="email" id="staff-email" placeholder="jane@acetransitions.org">
+            </div>
+            <div class="field">
+                <label for="staff-role">Role</label>
+                <select id="staff-role">
+                    <option value="clinician">Clinician — can fill out forms</option>
+                    <option value="peer_support">Peer Support — view only</option>
+                    <option value="admin">Admin — full access</option>
+                </select>
+            </div>
+            <div id="staff-error" class="form-error" hidden></div>
+            <div class="modal-actions">
+                <button id="staff-cancel" class="btn btn-ghost">Cancel</button>
+                <button id="staff-save" class="btn btn-primary">Create Account</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Temporary password result -->
+    <div id="result-modal" class="modal-backdrop" hidden>
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="result-title">
+            <h2 id="result-title">Account Created</h2>
+            <p>Share this temporary password with the new staff member. It is shown only once.</p>
+            <div class="password-box">
+                <code id="result-password"></code>
+                <button id="result-copy" class="btn btn-ghost"><i class="fas fa-copy"></i> Copy</button>
+            </div>
+            <div id="result-email" class="form-info"></div>
+            <div class="modal-actions">
+                <button id="result-close" class="btn btn-primary">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <!-- Portal scripts. staff-main.js defines Staff.ui and must load before
+         the other modules capture it, so it comes right after the client. -->
+    <script src="js/staff/config.js"></script>
+    <script src="js/staff/supabase-client.js"></script>
+    <script src="js/staff/staff-main.js"></script>
+    <script src="js/staff/auth.js"></script>
+    <script src="js/staff/dashboard.js"></script>
+    <script src="js/staff/forms.js"></script>
+    <script src="js/staff/pdf-fill.js"></script>
+    <script src="js/staff/admin.js"></script>
+    <script src="js/staff/training.js"></script>
+</body>
+
+</html>

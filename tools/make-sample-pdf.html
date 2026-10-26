@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generate Sample PDF | ACE Transitions Staff Portal</title>
+    <meta name="robots" content="noindex, nofollow">
+    <style>
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: #F8F9FA;
+            color: #374151;
+            max-width: 640px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            line-height: 1.6;
+        }
+
+        h1 {
+            color: #1B365D;
+            font-size: 1.5rem;
+        }
+
+        .card {
+            background: #fff;
+            border: 1px solid #E5E5E5;
+            border-radius: 12px;
+            padding: 24px;
+            margin-top: 20px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        button {
+            background: #D4AF37;
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            padding: 12px 24px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        button:hover {
+            background: #B8941F;
+        }
+
+        code {
+            background: #F5F5F5;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        #status {
+            margin-top: 14px;
+            font-size: 0.95rem;
+            min-height: 1.4em;
+        }
+
+        #status.ok {
+            color: #10B981;
+            font-weight: 600;
+        }
+
+        #status.err {
+            color: #EF4444;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Sample Intake PDF Generator</h1>
+    <div class="card">
+        <p>This is a developer utility. It creates a <strong>fillable</strong> sample intake PDF
+            (text fields, dropdowns, radio buttons, a checkbox, and a signature field) so the staff
+            portal's PDF filler can be tested before real forms are uploaded.</p>
+        <p>Generated fields: <code>first_name</code>, <code>last_name</code>, <code>date_of_birth</code>,
+            <code>program</code>, <code>county</code>, <code>gender</code>, <code>consent</code>,
+            <code>notes</code>, <code>signature</code>.</p>
+        <button id="generate-btn">Generate &amp; Download</button>
+        <div id="status"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.js"></script>
+    <script>
+        // Build the sample PDF and return its bytes (Uint8Array).
+        window.generateSamplePdf = async function () {
+            const { PDFDocument, StandardFonts, rgb, PDFName } = PDFLib;
+            const pdfDoc = await PDFDocument.create();
+            const page = pdfDoc.addPage([612, 792]);
+            const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+            const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+            const navy = rgb(0.106, 0.212, 0.365);
+            const gray = rgb(0.42, 0.45, 0.5);
+            const line = rgb(0.65, 0.67, 0.7);
+            const white = rgb(1, 1, 1);
+
+            const label = (text, y, size = 10, color = navy, f = bold) =>
+                page.drawText(text, { x: 72, y, size, font: f, color });
+
+            const fieldOpts = (y, width = 300, height = 16, x = 72) => ({
+                x, y, width, height,
+                borderColor: line,
+                borderWidth: 1,
+                backgroundColor: white
+            });
+
+            // Header
+            page.drawText('ACE Transitions', { x: 72, y: 760, size: 20, font: bold, color: navy });
+            page.drawText('Intake Form (sample — for testing the staff portal filler)', {
+                x: 72, y: 740, size: 11, font, color: gray
+            });
+            page.drawLine({ start: { x: 72, y: 724 }, end: { x: 540, y: 724 }, thickness: 1.5, color: navy });
+
+            // Patient information
+            label('PATIENT INFORMATION', 700);
+            label('First Name', 672, 9, navy, font);
+            const first = pdfDoc.getForm().createTextField('first_name');
+            first.addToPage(page, fieldOpts(650));
+
+            label('Last Name', 628, 9, navy, font);
+            const last = pdfDoc.getForm().createTextField('last_name');
+            last.addToPage(page, fieldOpts(606));
+
+            label('Date of Birth', 584, 9, navy, font);
+            const dob = pdfDoc.getForm().createTextField('date_of_birth');
+            dob.addToPage(page, fieldOpts(562, 140));
+
+            // Program
+            label('PROGRAM', 532);
+            const program = pdfDoc.getForm().createDropdown('program');
+            program.addOptions(['One-on-One Mentoring', 'Group Mentoring', 'Virtual Mentoring', 'Professional Development']);
+            program.addToPage(page, fieldOpts(504, 300, 18));
+
+            label('County', 476, 9, navy, font);
+            const county = pdfDoc.getForm().createDropdown('county');
+            county.addOptions(['Wake', 'Durham', 'Orange', 'Mecklenburg', 'Guilford', 'Other']);
+            county.addToPage(page, fieldOpts(448, 160, 18));
+
+            // Gender radio group
+            label('Gender', 418, 9, navy, font);
+            const gender = pdfDoc.getForm().createRadioGroup('gender');
+            const genderOpts = ['Male', 'Female', 'Non-binary', 'Prefer not to say'];
+            genderOpts.forEach((opt, i) => {
+                gender.addOptionToPage(opt, page, { x: 72 + i * 120, y: 392, width: 14, height: 14 });
+                page.drawText(opt, { x: 90 + i * 120, y: 392, size: 9, font, color: gray });
+            });
+
+            // Consent checkbox
+            const consent = pdfDoc.getForm().createCheckBox('consent');
+            consent.addToPage(page, { x: 72, y: 352, width: 16, height: 16, borderColor: line, borderWidth: 1, backgroundColor: white });
+            page.drawText('I consent to receiving services from ACE Transitions', {
+                x: 96, y: 353, size: 9, font, color: navy
+            });
+            consent.enableRequired();
+
+            // Notes (multiline)
+            label('Notes', 320, 9, navy, font);
+            const notes = pdfDoc.getForm().createTextField('notes');
+            notes.enableMultiline();
+            notes.addToPage(page, { x: 72, y: 284, width: 468, height: 30, borderColor: line, borderWidth: 1, backgroundColor: white });
+
+            // Signature — created as a text field, then flagged as a
+            // signature field (/FT /Sig) so the portal treats it as one.
+            label('Signature', 258, 9, navy, font);
+            const signature = pdfDoc.getForm().createTextField('signature');
+            signature.addToPage(page, { x: 72, y: 220, width: 300, height: 30, borderColor: line, borderWidth: 1, backgroundColor: white });
+            signature.enableRequired();
+            const sigFieldDict = signature.acroField.dict;
+            sigFieldDict.set(PDFName.of('FT'), PDFName.of('Sig'));
+            const sigWidget = signature.acroField.getWidgets()[0];
+            if (sigWidget) sigWidget.dict.set(PDFName.of('FT'), PDFName.of('Sig'));
+
+            // Footer
+            page.drawText('Sample form generated by tools/make-sample-pdf.html', {
+                x: 72, y: 60, size: 8, font, color: gray
+            });
+
+            const bytes = await pdfDoc.save();
+            return bytes;
+        };
+
+        document.getElementById('generate-btn').addEventListener('click', async () => {
+            const status = document.getElementById('status');
+            status.textContent = 'Generating…';
+            status.className = '';
+            try {
+                const bytes = await window.generateSamplePdf();
+                const blob = new Blob([bytes], { type: 'application/pdf' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'intake-demo.pdf';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                setTimeout(() => URL.revokeObjectURL(url), 4000);
+                status.textContent = 'Done! Saved as intake-demo.pdf — move it to assets/sample-forms/intake-demo.pdf.';
+                status.className = 'ok';
+            } catch (err) {
+                console.error(err);
+                status.textContent = 'Error: ' + err.message;
+                status.className = 'err';
+            }
+        });
+    </script>
+</body>
+
+</html>

@@ -15,6 +15,7 @@ create table if not exists public.profiles (
   full_name   text not null default '',
   role        text not null default 'employee' check (role in ('employee','admin')),
   active      boolean not null default false,      -- admin must activate
+  drive_folder_id text,                            -- Google Drive folder (mirror-to-drive)
   created_at  timestamptz not null default now()
 );
 
@@ -40,6 +41,7 @@ create table if not exists public.training_completions (
 -- Which documents each employee must complete. doc_key values:
 --   'onboarding_packet'  = the 1099 fillable PDF
 --   'master_application' = the Master Application PDF
+--   'form:<fillable_forms.id>' = an admin-uploaded fillable form
 create table if not exists public.document_assignments (
   id           uuid primary key default gen_random_uuid(),
   user_id      uuid not null references auth.users(id) on delete cascade,
@@ -84,6 +86,25 @@ create table if not exists public.shared_documents (
   created_at   timestamptz not null default now()
 );
 
+-- Fillable form templates uploaded by admins (Manage Documents tab).
+-- Employees complete these online (packet.html?form=<id>); the filled PDF
+-- lands in their private documents. document_assignments rows use the
+-- doc_key 'form:<this row id>'.
+create table if not exists public.fillable_forms (
+  id           uuid primary key default gen_random_uuid(),
+  title        text not null,
+  description  text not null default '',
+  sort_order   int not null default 0,
+  file_name    text not null,
+  file_path    text not null,                      -- storage path in 'documents' bucket under forms/
+  file_size    bigint,
+  is_active    boolean not null default true,
+  created_by   uuid references auth.users(id) on delete set null,
+  created_at   timestamptz not null default now()
+);
+
+create index if not exists fillable_forms_active_idx on public.fillable_forms (is_active, sort_order);
+
 -- ----------------------------------------------------------------------------
 -- 2) TRIGGER: every new auth user automatically gets an (inactive) profile
 -- ----------------------------------------------------------------------------
@@ -105,6 +126,13 @@ begin
   -- every new account gets both documents assigned, pending
   insert into public.document_assignments (user_id, doc_key)
   values (new.id, 'onboarding_packet'), (new.id, 'master_application')
+  on conflict (user_id, doc_key) do nothing;
+
+  -- plus every fillable form the admins have added
+  insert into public.document_assignments (user_id, doc_key)
+  select new.id, 'form:' || f.id::text
+  from public.fillable_forms f
+  where f.is_active
   on conflict (user_id, doc_key) do nothing;
 
   return new;
@@ -224,6 +252,38 @@ drop policy if exists "shared_docs_admin_delete" on public.shared_documents;
 create policy "shared_docs_admin_delete" on public.shared_documents
   for delete using (public.is_admin());
 
+-- FILLABLE FORMS (admin-uploaded PDF form templates) --------------------------
+alter table public.fillable_forms enable row level security;
+
+drop policy if exists "forms_read_active" on public.fillable_forms;
+create policy "forms_read_active" on public.fillable_forms
+  for select using (
+    is_active
+    and exists (select 1 from public.profiles p where p.id = auth.uid() and p.active)
+  );
+
+drop policy if exists "forms_admin_write" on public.fillable_forms;
+create policy "forms_admin_write" on public.fillable_forms
+  for all using (public.is_admin()) with check (public.is_admin());
+
+-- Adding a form assigns it (pending) to every existing profile.
+create or replace function public.assign_form_to_everyone()
+returns trigger
+language plpgsql security definer set search_path = public
+as $$
+begin
+  insert into public.document_assignments (user_id, doc_key)
+  select p.id, 'form:' || new.id::text
+  from public.profiles p
+  on conflict (user_id, doc_key) do nothing;
+  return new;
+end $$;
+
+drop trigger if exists on_fillable_form_created on public.fillable_forms;
+create trigger on_fillable_form_created
+  after insert on public.fillable_forms
+  for each row execute function public.assign_form_to_everyone();
+
 -- ----------------------------------------------------------------------------
 -- 4) STORAGE: PRIVATE BUCKET for completed PDFs
 --    Layout: documents/{user_id}/onboarding-packet-<timestamp>.pdf
@@ -278,6 +338,33 @@ create policy "docs_shared_admin_upload" on storage.objects
   with check (
     bucket_id = 'documents'
     and name like 'shared/%'
+    and public.is_admin()
+  );
+
+-- Blank fillable form templates: all active users read forms/, admins write
+drop policy if exists "docs_forms_read" on storage.objects;
+create policy "docs_forms_read" on storage.objects
+  for select to authenticated
+  using (
+    bucket_id = 'documents'
+    and name like 'forms/%'
+  );
+
+drop policy if exists "docs_forms_admin_upload" on storage.objects;
+create policy "docs_forms_admin_upload" on storage.objects
+  for insert to authenticated
+  with check (
+    bucket_id = 'documents'
+    and name like 'forms/%'
+    and public.is_admin()
+  );
+
+drop policy if exists "docs_forms_admin_delete" on storage.objects;
+create policy "docs_forms_admin_delete" on storage.objects
+  for delete to authenticated
+  using (
+    bucket_id = 'documents'
+    and name like 'forms/%'
     and public.is_admin()
   );
 
@@ -348,12 +435,13 @@ select u.id,
 from auth.users u
 on conflict (id) do nothing;
 
--- REPAIR 2: if document_assignments existed before 'master_application' was
--- added, its check constraint must be widened. Safe to re-run:
+-- REPAIR 2: if document_assignments existed before 'master_application' or
+-- admin-uploaded forms were added, its check constraint must be widened.
+-- Safe to re-run:
 alter table public.document_assignments drop constraint if exists document_assignments_doc_key_check;
 alter table public.document_assignments
   add constraint document_assignments_doc_key_check
-  check (doc_key in ('onboarding_packet','master_application'));
+  check (doc_key in ('onboarding_packet','master_application') or doc_key like 'form:%');
 
 -- REPAIR 3: give every existing account an (empty, pending) row for both docs
 insert into public.document_assignments (user_id, doc_key)
@@ -361,6 +449,19 @@ select u.id, d.doc_key
 from auth.users u
 cross join (values ('onboarding_packet'),('master_application')) as d(doc_key)
 on conflict (user_id, doc_key) do nothing;
+
+-- REPAIR 5: backfill pending assignments for any fillable forms that existed
+-- before this section ran (safe to re-run):
+insert into public.document_assignments (user_id, doc_key)
+select p.id, 'form:' || f.id::text
+from public.profiles p
+cross join public.fillable_forms f
+where f.is_active
+on conflict (user_id, doc_key) do nothing;
+
+-- REPAIR 6: add the Google Drive mirror column if profiles existed before it
+-- was introduced (safe to re-run):
+alter table public.profiles add column if not exists drive_folder_id text;
 
 -- ----------------------------------------------------------------------------
 -- 6) MAKE YOURSELF THE FIRST ADMIN

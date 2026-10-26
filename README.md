@@ -29,6 +29,11 @@ Peer Mentoring agency website built for ACE Transitions .
 2. Open `index.html` in your web browser
 3. No build process required - it's a static website!
 
+## Setup Guides
+
+- **Google Drive Mirroring**: See [`GOOGLE_DRIVE_SETUP.md`](file:///c:/Users/josiah/Desktop/tina/ace/AceTransitions/GOOGLE_DRIVE_SETUP.md) for step-by-step instructions on setting up the free Google Drive mirror edge function.
+- **Supabase Backend**: See [`SUPABASE_SETUP.md`](file:///c:/Users/josiah/Desktop/tina/ace/AceTransitions/SUPABASE_SETUP.md) for database schema and authentication setup.
+
 ## File Structure
 
 ```
