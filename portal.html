@@ -6,7 +6,7 @@
     <title>Employee Portal | ACE Transitions</title>
     <meta name="robots" content="noindex, nofollow">
 
-    <link rel="icon" type="image/png" href="TLCLogo.png?v=2">
+    <link rel="icon" type="image/png" href="assets/acelogo.png">
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/portal.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -16,7 +16,7 @@
     <nav class="portal-nav">
         <div class="portal-nav-inner">
             <div class="portal-brand">
-                <img src="TLCLogo.png?v=2" alt="ACE Transitions">
+                <img src="assets/acelogo.png" alt="ACE Transitions">
                 <span>Employee Portal</span>
             </div>
             <div class="portal-links">
@@ -42,6 +42,7 @@
             <div class="tabs" id="tabs">
                 <button class="tab active" data-tab="training"><i class="fas fa-video"></i> Training Videos</button>
                 <button class="tab" data-tab="documents"><i class="fas fa-file-signature"></i> My Documents</button>
+                <button class="tab grip-only hidden" data-tab="grip"><i class="fas fa-hands-holding-circle"></i> GRIP</button>
                 <button class="tab admin-only hidden" data-tab="people"><i class="fas fa-users"></i> People Progress</button>
                 <button class="tab admin-only hidden" data-tab="manage"><i class="fas fa-sliders-h"></i> Manage Videos</button>
                 <button class="tab admin-only hidden" data-tab="shared"><i class="fas fa-folder-open"></i> Manage Documents</button>
@@ -83,6 +84,16 @@ The summaries provided by our organization are intended as a general overview an
 
                 <h3 class="uploads-heading"><i class="fas fa-cloud-arrow-up"></i> Uploads</h3>
                 <div id="uploads-list" class="cards-list"></div>
+            </section>
+
+            <!-- ===================== GRIP (all except level1) ===================== -->
+            <section id="tab-grip" class="tab-panel hidden">
+                <div class="panel-head">
+                    <h2>GRIP</h2>
+                </div>
+                <div class="grip-embed-wrap" id="grip-embed-wrap">
+                    <!-- Jotform is injected here the first time this tab is opened -->
+                </div>
             </section>
 
             <!-- ===================== ADMIN: PEOPLE PROGRESS ===================== -->
@@ -259,10 +270,14 @@ The summaries provided by our organization are intended as a general overview an
         const me = await requireUser();
         if (!me) return;
         const isAdmin = me.role === 'admin';
+        const isLevel1 = me.role === 'level1';
 
         document.getElementById('portal-loading').classList.add('hidden');
         document.getElementById('portal-content').classList.remove('hidden');
         document.getElementById('user-name').textContent = me.full_name || me.email;
+        if (!isLevel1) {
+            document.querySelectorAll('.grip-only').forEach(el => el.classList.remove('hidden'));
+        }
         if (isAdmin) {
             document.getElementById('user-badge').classList.remove('hidden');
             document.querySelectorAll('.admin-only').forEach(el => el.classList.remove('hidden'));
@@ -301,7 +316,27 @@ The summaries provided by our organization are intended as a general overview an
             document.querySelectorAll('.tab-panel').forEach(x => x.classList.add('hidden'));
             t.classList.add('active');
             document.getElementById('tab-' + t.dataset.tab).classList.remove('hidden');
+            if (t.dataset.tab === 'grip') loadGripForm();
         }));
+
+        // GRIP (Jotform) is injected the first time the tab is opened. Loading it
+        // at page start made Jotform measure its iframe while the form was hidden
+        // (display:none), and the embed then rendered stuck at a short fixed
+        // height — cut off. Injecting while the tab is visible lets it size
+        // correctly, and speeds up the portal's initial load too.
+        let gripLoaded = false;
+        function loadGripForm() {
+            if (gripLoaded) return;
+            gripLoaded = true;
+            const wrap = document.getElementById('grip-embed-wrap');
+            if (!wrap) return;
+            const note = wrap.querySelector('[data-grip-loading]');
+            if (note) note.remove();
+            const s = document.createElement('script');
+            s.type = 'text/javascript';
+            s.src = 'https://form.jotform.com/jsform/262636701963058';
+            wrap.appendChild(s);
+        };
 
         // ---------- State ----------
         let videos = [], completions = new Set(), assignments = [], uploads = [], sharedDocs = [], forms = [];
@@ -448,6 +483,24 @@ The summaries provided by our organization are intended as a general overview an
             }
         ];
 
+        // Bundled company documents — shipped with the site, always listed first:
+        const BUNDLED_COMPANY_DOCS = [
+            {
+                title: 'ACE Transitions Employee Handbook (2026)',
+                desc: 'The complete employee handbook \u2014 company overview, expectations, compensation, conduct, time tracking, and procedures for all ACE Transitions team members.',
+                file_path: 'assets/employee-handbook-2026.pdf',
+                file_name: 'ACE_Transitions_Employee_Handbook_2026.pdf',
+                file_size: 348759
+            },
+            {
+                title: 'Peer Support Policies & Procedures Manual',
+                desc: 'Policies and procedures for peer support services \u2014 documentation standards, code of ethics, scope of practice, and compliance requirements.',
+                file_path: 'assets/peer-support-policies-manual.pdf',
+                file_name: 'ACE_Transitions_Peer_Support_Policies_and_Procedures_Manual.pdf',
+                file_size: 225886
+            }
+        ];
+
         function renderPolicies() {
             const wrap = document.getElementById('policies-list');
             if (!wrap) return;
@@ -506,32 +559,39 @@ The summaries provided by our organization are intended as a general overview an
             return 'fa-file-lines';
         }
 
+        function sharedDocCard(d, isBundled) {
+            const card = document.createElement('div');
+            card.className = 'manage-card';
+            const meta = `${escapeHtml(d.file_name)}${d.file_size ? ' · ' + (d.file_size / 1024 / 1024).toFixed(2) + ' MB' : ''}${isBundled ? '' : ' · added ' + new Date(d.created_at).toLocaleDateString()}`;
+            card.innerHTML = `
+                    <div class="manage-info" style="display:flex; gap:12px; align-items:flex-start;">
+                        <i class="fas ${isBundled ? 'fa-book' : fileIcon(d.mime_type, d.file_name)}" style="font-size:1.4rem; color:var(--light-blue); margin-top:3px;"></i>
+                        <div>
+                            <strong>${escapeHtml(d.title)}</strong>
+                            <p>${escapeHtml(d.description || '')}</p>
+                            <span class="manage-url">${meta}</span>
+                        </div>
+                    </div>
+                    <div class="manage-actions">
+                        ${isBundled
+                            ? `<a class="btn btn-small btn-secondary" href="${d.file_path}" target="_blank" rel="noopener"><i class="fas fa-eye"></i> View</a>
+                               <a class="btn btn-small btn-muted" href="${d.file_path}" download="${escapeHtml(d.file_name)}"><i class="fas fa-download"></i> Download</a>`
+                            : `<button class="btn btn-small btn-secondary view-shared-btn" data-path="${d.file_path}">
+                                   <i class="fas fa-eye"></i> View</button>
+                               <button class="btn btn-small btn-muted dl-shared-btn" data-path="${d.file_path}" data-name="${escapeHtml(d.file_name)}">
+                                   <i class="fas fa-download"></i> Download</button>`}
+                    </div>`;
+            return card;
+        }
+
         function renderSharedDocs() {
             const wrap = document.getElementById('shared-docs-list');
             if (!wrap) return;
             const company = sharedDocs.filter(d => (d.doc_type || 'company') === 'company');
-            wrap.innerHTML = company.length ? '' :
+            wrap.innerHTML = (BUNDLED_COMPANY_DOCS.length + company.length) ? '' :
                 '<p class="empty-note">No company documents have been shared yet.</p>';
-            company.forEach(d => {
-                const card = document.createElement('div');
-                card.className = 'manage-card';
-                card.innerHTML = `
-                    <div class="manage-info" style="display:flex; gap:12px; align-items:flex-start;">
-                        <i class="fas ${fileIcon(d.mime_type, d.file_name)}" style="font-size:1.4rem; color:var(--light-blue); margin-top:3px;"></i>
-                        <div>
-                            <strong>${escapeHtml(d.title)}</strong>
-                            <p>${escapeHtml(d.description || '')}</p>
-                            <span class="manage-url">${escapeHtml(d.file_name)} · ${d.file_size ? (d.file_size / 1024 / 1024).toFixed(2) + ' MB' : ''} · added ${new Date(d.created_at).toLocaleDateString()}</span>
-                        </div>
-                    </div>
-                    <div class="manage-actions">
-                        <button class="btn btn-small btn-secondary view-shared-btn" data-path="${d.file_path}">
-                            <i class="fas fa-eye"></i> View</button>
-                        <button class="btn btn-small btn-muted dl-shared-btn" data-path="${d.file_path}" data-name="${escapeHtml(d.file_name)}">
-                            <i class="fas fa-download"></i> Download</button>
-                    </div>`;
-                wrap.appendChild(card);
-            });
+            BUNDLED_COMPANY_DOCS.forEach(d => wrap.appendChild(sharedDocCard(d, true)));
+            company.forEach(d => wrap.appendChild(sharedDocCard(d, false)));
             wrap.querySelectorAll('.view-shared-btn').forEach(b =>
                 b.addEventListener('click', () => downloadCompletedPacket(b.dataset.path)));
             wrap.querySelectorAll('.dl-shared-btn').forEach(b =>
@@ -925,6 +985,7 @@ The summaries provided by our organization are intended as a general overview an
                 tr.innerHTML = `
                     <td><strong>${escapeHtml(p.full_name || '—')}</strong>
                         ${p.role === 'admin' ? '<span class="badge badge-admin">Admin</span>' : ''}
+                        ${p.role === 'level1' ? '<span class="badge">Level 1</span>' : ''}
                         ${p.id === me.id ? '<span class="badge">You</span>' : ''}</td>
                     <td>${escapeHtml(p.email)}</td>
                     <td>${myComps.length} / ${vids.length}
@@ -938,8 +999,12 @@ The summaries provided by our organization are intended as a general overview an
                         ${p.id !== me.id ? `
                             <button class="link-btn toggle-active" data-id="${p.id}" data-active="${p.active}">
                                 ${p.active ? 'Deactivate' : 'Activate'}</button>
-                            <button class="link-btn toggle-admin" data-id="${p.id}" data-role="${p.role}">
-                                ${p.role === 'admin' ? 'Make employee' : 'Make admin'}</button>` : ''}
+                            <div class="role-actions">
+                                <button class="link-btn toggle-admin" data-id="${p.id}" data-role="${p.role}">
+                                    ${p.role === 'admin' ? 'Make employee' : 'Make admin'}</button>
+                                <button class="link-btn toggle-level1" data-id="${p.id}" data-role="${p.role}">
+                                    ${p.role === 'level1' ? 'Remove Level 1' : 'Set Level 1'}</button>
+                            </div>` : ''}
                         ${!docs.some(d => d.user_id === p.id) ? `<button class="link-btn assign-doc" data-id="${p.id}">Assign docs</button>` : ''}
                     </td>`;
                 tbody.appendChild(tr);
@@ -981,6 +1046,8 @@ The summaries provided by our organization are intended as a general overview an
                 updateProfile(b.dataset.id, { active: b.dataset.active !== 'true' })));
             tbody.querySelectorAll('.toggle-admin').forEach(b => b.addEventListener('click', () =>
                 updateProfile(b.dataset.id, { role: b.dataset.role === 'admin' ? 'employee' : 'admin' })));
+            tbody.querySelectorAll('.toggle-level1').forEach(b => b.addEventListener('click', () =>
+                updateProfile(b.dataset.id, { role: b.dataset.role === 'level1' ? 'employee' : 'level1' })));
             tbody.querySelectorAll('.assign-doc').forEach(b => b.addEventListener('click', async () => {
                 const { error } = await supabaseClient.from('document_assignments')
                     .insert([

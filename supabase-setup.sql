@@ -13,7 +13,7 @@ create table if not exists public.profiles (
   id          uuid primary key references auth.users(id) on delete cascade,
   email       text not null,
   full_name   text not null default '',
-  role        text not null default 'employee' check (role in ('employee','admin')),
+  role        text not null default 'employee' check (role in ('employee','level1','admin')),
   active      boolean not null default false,      -- admin must activate
   drive_folder_id text,                            -- Google Drive folder (mirror-to-drive)
   created_at  timestamptz not null default now()
@@ -462,6 +462,12 @@ on conflict (user_id, doc_key) do nothing;
 -- REPAIR 6: add the Google Drive mirror column if profiles existed before it
 -- was introduced (safe to re-run):
 alter table public.profiles add column if not exists drive_folder_id text;
+-- REPAIR 7: if profiles existed before the 'level1' role was added, widen its
+-- check constraint. Safe to re-run:
+alter table public.profiles drop constraint if exists profiles_role_check;
+alter table public.profiles
+  add constraint profiles_role_check
+  check (role in ('employee','level1','admin'));
 
 -- ----------------------------------------------------------------------------
 -- 6) MAKE YOURSELF THE FIRST ADMIN

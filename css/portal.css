@@ -225,6 +225,13 @@
 .badge-pending { background: #FEF3C7; color: #92400E; }
 .badge-admin { background: var(--primary-gold); color: var(--white); }
 
+.role-actions { display: flex; flex-direction: column; gap: 2px; }
+
+/* GRIP embed */
+.grip-embed-wrap { max-width: 860px; margin: 0 auto; background: var(--white); border-radius: 12px;
+    padding: 8px; box-shadow: var(--shadow); }
+.grip-embed-wrap iframe { width: 100% !important; }
+
 /* Documents */
 .doc-card {
     background: var(--white);
