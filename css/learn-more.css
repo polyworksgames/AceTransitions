@@ -1,0 +1,111 @@
+/* Learn More About Us – profile page */
+.profile-hero {
+    padding: 140px 0 40px;
+    background-color: var(--off-white);
+}
+
+.profile-back {
+    display: inline-block;
+    margin-bottom: 20px;
+    color: var(--deep-blue);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.profile-back:hover {
+    text-decoration: underline;
+}
+
+.profile-page-title {
+    font-size: 2.5rem;
+    color: var(--deep-blue);
+    margin-top: 10px;
+}
+
+.profile-section {
+    padding: 40px 0 80px;
+    background-color: var(--off-white);
+}
+
+.profile-grid {
+    display: grid;
+    grid-template-columns: minmax(220px, 1fr) 2fr;
+    gap: 50px;
+    align-items: start;
+}
+
+.profile-photo img {
+    width: 100%;
+    max-width: 360px;
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-lg);
+    display: block;
+}
+
+.profile-name {
+    font-size: 2rem;
+    color: var(--deep-blue);
+    margin: 10px 0 6px;
+}
+
+.profile-role {
+    font-weight: 600;
+    color: var(--primary-gold);
+    margin-bottom: 20px;
+}
+
+.profile-content p {
+    line-height: 1.7;
+    margin-bottom: 16px;
+}
+
+.profile-subheading {
+    font-size: 1.25rem;
+    color: var(--deep-blue);
+    margin: 28px 0 10px;
+}
+
+.profile-list {
+    padding-left: 20px;
+    margin-bottom: 16px;
+    line-height: 1.7;
+}
+
+.profile-content .btn {
+    margin-top: 16px;
+}
+
+.profile-section-next {
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.profile-cta {
+    padding: 60px 0 80px;
+    text-align: center;
+    background-color: var(--off-white);
+}
+
+.profile-cta h2 {
+    font-size: 1.75rem;
+    color: var(--deep-blue);
+    margin-bottom: 20px;
+}
+
+@media (max-width: 768px) {
+    .profile-hero {
+        padding-top: 110px;
+    }
+
+    .profile-page-title {
+        font-size: 2rem;
+    }
+
+    .profile-grid {
+        grid-template-columns: 1fr;
+        gap: 30px;
+    }
+
+    .profile-photo img {
+        margin: 0 auto;
+    }
+}

@@ -2,8 +2,13 @@
 :root {
     /* Colors from TLC Logo */
     --primary-gold: #D4AF37;
-    --deep-blue: #1B365D;
-    --light-blue: #2E5984;
+    --gold-light: #F3D27A;
+    --gold-dark: #B8891F;
+    --deep-purple: #2A0F4A;
+    --purple: #5B2A86;
+    --teal: #1FB6C8;
+    --deep-blue: #1E1B5C;
+    --light-blue: #2A2F86;
     --white: #FFFFFF;
     --off-white: #F8F9FA;
     --gray-100: #F5F5F5;
@@ -837,10 +842,16 @@ img {
         text-align: center;
     }
 
-    .contact-item {
+    .contact-details .contact-item {
         text-align: center;
         flex-direction: column;
         gap: 8px;
+        margin: 0;
+    }
+
+    .contact-info h2 {
+        font-size: 2rem;
+        overflow-wrap: anywhere;
     }
 }
 
