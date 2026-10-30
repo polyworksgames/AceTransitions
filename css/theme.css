@@ -281,6 +281,11 @@ h1, h2, .section-header h2, .page-header h1, .hero-title {
     font-size: 1.6rem;
 }
 
+/* Requirement bullets span the full card so they don't wrap inside the 72px icon column */
+.position-card .position-requirements {
+    grid-column: 1 / -1;
+}
+
 /* ----- Home page (matches home mockup) ----- */
 .home-hero {
     background:
