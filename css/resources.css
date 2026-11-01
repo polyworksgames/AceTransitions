@@ -171,6 +171,9 @@
 /* CTA Section */
 .cta-section {
     background-color: var(--deep-blue);
+    background-image: url('../assets/cta-banner.jpg?v=1');
+    background-size: cover;
+    background-position: center;
     color: var(--white);
     padding: 80px 0;
     text-align: center;
