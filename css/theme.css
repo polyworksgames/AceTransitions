@@ -502,9 +502,9 @@ h1, h2, .section-header h2, .page-header h1, .hero-title {
 
 .resources-view .resource-card .resource-link {
     margin-top: auto;
-    align-self: stretch;
-    width: 100%;
-    box-sizing: border-box;
+    align-self: center;
+    padding: 10px 26px;
+    white-space: nowrap;
 }
 
 .resources-view .resource-icon {
