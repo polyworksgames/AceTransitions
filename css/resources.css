@@ -202,17 +202,21 @@
     color: #4A1D6E;
 }
 
+.resources-view .resource-link {
+    color: #2A1046;
+}
+
 .resource-link {
     display: block;
     margin-top: 18px;
     padding: 14px 20px;
-    background: linear-gradient(180deg, #FFD84A, #F2B705);
-    color: #4A1D6E;
+    background: linear-gradient(180deg, #E0B43A, #C9A030);
+    color: #2A1046;
     border-radius: 999px;
     font-weight: 700;
     text-align: center;
     text-decoration: none;
-    box-shadow: 0 4px 10px rgba(242, 183, 5, 0.35);
+    box-shadow: 0 4px 10px rgba(201, 160, 48, 0.35);
     transition: var(--transition);
 }
 
