@@ -23,6 +23,7 @@
 }
 
 .feature-frame {
+    max-width: 360px;
     padding: 10px;
     border-radius: 22px;
     background: linear-gradient(145deg, var(--ace-gold-light), var(--ace-gold));
@@ -30,9 +31,8 @@
 }
 
 .profile-feature .feature-frame img {
-    max-width: none;
+    max-width: 340px;
     width: 100%;
-    border-radius: 14px;
     box-shadow: none;
     display: block;
 }
