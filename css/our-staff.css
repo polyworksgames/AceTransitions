@@ -22,8 +22,14 @@
     position: relative;
 }
 
+.profile-photo img {
+    aspect-ratio: 940 / 1327;
+    object-fit: cover;
+    object-position: center top;
+}
+
 .feature-frame {
-    max-width: 360px;
+    max-width: 380px;
     padding: 10px;
     border-radius: 22px;
     background: linear-gradient(145deg, var(--ace-gold-light), var(--ace-gold));
@@ -31,10 +37,13 @@
 }
 
 .profile-feature .feature-frame img {
-    max-width: 340px;
+    max-width: 360px;
     width: 100%;
     box-shadow: none;
     display: block;
+    aspect-ratio: 940 / 1327;
+    object-fit: cover;
+    object-position: center top;
 }
 
 .feature-badge {
