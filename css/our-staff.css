@@ -41,6 +41,7 @@
     width: 100%;
     box-shadow: none;
     display: block;
+    margin: 0 auto;
     aspect-ratio: 940 / 1327;
     object-fit: cover;
     object-position: center top;
