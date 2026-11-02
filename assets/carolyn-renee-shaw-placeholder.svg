@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1000" viewBox="0 0 800 1000">
-  <rect width="800" height="1000" fill="#e9e4ef"/>
-  <circle cx="400" cy="380" r="150" fill="#b9aecb"/>
-  <path d="M130 1000 C130 740 260 610 400 610 C540 610 670 740 670 1000 Z" fill="#b9aecb"/>
-  <text x="400" y="900" font-family="Arial, Helvetica, sans-serif" font-size="48" fill="#5b4a72" text-anchor="middle">Photo coming soon</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="940" height="1327" viewBox="0 0 940 1327">
+  <rect width="940" height="1327" fill="#e9e4ef"/>
+  <circle cx="470" cy="470" r="180" fill="#b9aecb"/>
+  <path d="M170 1327 C170 1000 310 830 470 830 C630 830 770 1000 770 1327 Z" fill="#b9aecb"/>
+  <text x="470" y="1200" font-family="Arial, Helvetica, sans-serif" font-size="52" fill="#5b4a72" text-anchor="middle">Photo coming soon</text>
 </svg>
