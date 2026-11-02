@@ -39,7 +39,7 @@
 
     <!-- Stylesheets -->
     <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="css/theme.css?v=2">
+    <link rel="stylesheet" href="css/theme.css?v=3">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
@@ -58,17 +58,21 @@
         "url": "https://transitionslegacycenter.com",
         "logo": "https://transitionslegacycenter.com/assets/acelogo.png",
         "image": "https://transitionslegacycenter.com/assets/acelogo.png",
-        "telephone": "(984) 444-9292",
+        "telephone": "+1-984-444-9292",
+        "faxNumber": "+1-919-957-9539",
         "email": "info@acetransitions.org",
         "address": {
             "@type": "PostalAddress",
-            "streetAddress": "123 Wellness Way",
-            "addressLocality": "Atlanta",
-            "addressRegion": "GA",
-            "postalCode": "30301",
+            "streetAddress": "6015 Fayetteville Rd, Suite 114",
+            "addressLocality": "Durham",
+            "addressRegion": "NC",
+            "postalCode": "27703",
             "addressCountry": "US"
         },
-        "openingHours": "Mo-Fr 09:00-17:00",
+        "openingHoursSpecification": [
+            { "@type": "OpeningHoursSpecification", "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"], "opens": "09:00", "closes": "17:00" },
+            { "@type": "OpeningHoursSpecification", "dayOfWeek": "Saturday", "opens": "09:00", "closes": "15:00" }
+        ],
         "priceRange": "$",
         "hasOfferCatalog": {
             "@type": "OfferCatalog",
@@ -95,7 +99,7 @@
     <nav class="navbar">
         <div class="nav-container">
             <div class="nav-logo">
-                <img src="assets/acelogo.png?v=4" alt="ACE Transitions" class="logo">
+                <img src="assets/acelogo.png?v=5" alt="ACE Transitions" class="logo">
                 <span class="logo-text">ACE Transitions</span>
             </div>
             <ul class="nav-menu">
@@ -104,6 +108,7 @@
                 <li><a href="#services" class="nav-link">Services</a></li>
                 <li><a href="resources.html" class="nav-link">Resources</a></li>
                 <li><a href="careers.html" class="nav-link">Careers</a></li>
+                <li><a href="our-staff.html" class="nav-link">Our Staff</a></li>
                 <li><a href="#contact" class="nav-link">Contact</a></li>
                 <li><a href="https://account.simplepractice.com/saml/auth?SAMLRequest=fVJNj9MwFPwrufnkJg0NUKupVFohKu1C1GY5cEGO%2B8JaSmzj98KWf4%2Fdj92stPRkyW9mPDN%2BC5R958RqoEezg98DICUrRPCkrVlbg0MPfg%2F%2Bj1bwsLsr2SORQ5GmCGrwMEHduw6cl4oCYqJsnw6BjWnUTWWQZckmiGojo%2BILXyplB0NvCYyo203Jfja5attGzvismX%2Fgs3mh%2BLydfuTFVBbT9l3WFJkMUMQBtgZJGipZnuXveVbwaVHnmcgKURQ%2FWFJ5S1bZ7pM2B21%2BlWzwRliJGoWRPaAgJfar%2BzuRTzLRnEEovtR1xatv%2B5ol30O0U4wAYMmx7wyKaPe2krwWOqa42xx3scqWi4gWp3h%2B%2BbouLp1bpOP54vyfX4PedlPZTqu%2Fyarr7NPagyQoGfkBWPLZ%2Bl7SbQfxRh94e4IK8tKgBkMsvT5y2Rc4nLYnLAvBkZK17Z30GmNLcAw%2BrwnGqHUXOtlBu7xZmxIq4sJ1FY4n6w%2FxA0GFJ%2Btox1lPl%2Fhvip9n%2FzH6PB3v%2FvIf"
                         class="nav-link cta-outline" target="_blank" rel="noopener noreferrer">Patient Sign In</a></li>
@@ -266,8 +271,12 @@
                         <div class="contact-item">
                             <i class="fas fa-phone"></i>
                             <div>
-                                <h4>Phone</h4>
-                                <p>(984) 444-9292</p>
+                                <h4>Direct</h4>
+                                <p>984-444-9292</p>
+                                <h4>Office</h4>
+                                <p>919-957-7357</p>
+                                <h4>Fax</h4>
+                                <p>919-957-9539</p>
                             </div>
                         </div>
                         <div class="contact-item">
@@ -275,13 +284,18 @@
                             <div>
                                 <h4>Email</h4>
                                 <p>info@acetransitions.org</p>
+                                <h4>Web</h4>
+                                <p>acetransitions.org</p>
                             </div>
                         </div>
                         <div class="contact-item">
                             <i class="fas fa-map-marker-alt"></i>
                             <div>
                                 <h4>Address</h4>
-                                <p>Serving all 100 NC Counties</p>
+                                <p>6015 Fayetteville Rd, Suite 114<br>Durham, NC 27703</p>
+                                <h4>Hours</h4>
+                                <p>Mon–Fri: 9:00 am – 5:00 pm<br>Sat: 9:00 am – 3:00 pm</p>
+                                <p><em>Telehealth services available</em></p>
                             </div>
                         </div>
                     </div>
@@ -330,7 +344,7 @@
             <div class="footer-content">
                 <div class="footer-section">
                     <div class="footer-logo">
-                        <img src="assets/acelogo.png?v=4" alt="ACE Transitions" class="footer-logo-img">
+                        <img src="assets/acelogo.png?v=5" alt="ACE Transitions" class="footer-logo-img">
                         <span class="footer-logo-text">ACE Transitions</span>
                     </div>
                     <p>Recovery. Reentry. Renewal.</p>
@@ -353,9 +367,11 @@
                 <div class="footer-section">
                     <h4>Contact Us</h4>
                     <div class="footer-contact">
-                        <p><i class="fas fa-phone"></i> (984) 444-9292</p>
+                        <p><i class="fas fa-phone"></i> 984-444-9292 (Direct)</p>
+                        <p><i class="fas fa-phone"></i> 919-957-7357 (Office)</p>
                         <p><i class="fas fa-envelope"></i> info@acetransitions.org</p>
-                        <p><i class="fas fa-map-marker-alt"></i> Serving all 100 NC Counties</p>
+                        <p><i class="fas fa-map-marker-alt"></i> 6015 Fayetteville Rd, Suite 114, Durham, NC 27703</p>
+                        <p><i class="fas fa-clock"></i> Mon–Fri 9–5 · Sat 9–3</p>
                     </div>
                 </div>
 

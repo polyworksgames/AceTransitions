@@ -332,7 +332,7 @@ h1, h2, .section-header h2, .page-header h1, .hero-title {
 }
 
 .resources-view .page-header {
-    background: #1B0E38;
+    background: #1B0E38 url('../assets/resources-background.jpg?v=3') center / cover no-repeat;
     padding: 0;
     text-align: center;
     position: relative;
@@ -348,16 +348,17 @@ h1, h2, .section-header h2, .page-header h1, .hero-title {
 .resources-view .page-header .container {
     display: flex;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: space-between;
+    gap: 40px;
     width: 100%;
     height: auto;
     min-height: 368px;
-    padding: 0 6% 0 46%;
+    padding: 0 6%;
     box-sizing: border-box;
 }
 
 .resources-view .page-header .resources-hero-logo {
-    display: none;
+    display: block;
 }
 
 .resources-hero-logo {
@@ -666,7 +667,7 @@ h1, h2, .section-header h2, .page-header h1, .hero-title {
 .home-hero {
     background:
         linear-gradient(90deg, rgba(20, 12, 40, 0.9) 0%, rgba(40, 20, 80, 0.4) 50%, rgba(20, 12, 40, 0) 100%),
-        url('../assets/home-hero.jpg?v=1');
+        url('../assets/home-hero.jpg?v=2');
     background-size: cover;
     background-position: center center;
     min-height: 420px;

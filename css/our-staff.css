@@ -1,0 +1,133 @@
+/* Our Staff – featured executive profile (ACE purple & gold) */
+.profile-feature {
+    background: linear-gradient(135deg, var(--ace-purple-dark) 0%, var(--ace-purple) 100%);
+    padding: 60px 0 70px;
+    position: relative;
+    overflow: hidden;
+}
+
+.profile-feature::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 85% 15%, rgba(212, 175, 55, 0.18), transparent 45%);
+    pointer-events: none;
+}
+
+.profile-feature .container {
+    position: relative;
+}
+
+.profile-feature .profile-photo {
+    position: relative;
+}
+
+.feature-frame {
+    padding: 10px;
+    border-radius: 22px;
+    background: linear-gradient(145deg, var(--ace-gold-light), var(--ace-gold));
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.35);
+}
+
+.profile-feature .feature-frame img {
+    max-width: none;
+    width: 100%;
+    border-radius: 14px;
+    box-shadow: none;
+    display: block;
+}
+
+.feature-badge {
+    position: absolute;
+    left: 50%;
+    bottom: -18px;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    padding: 10px 20px;
+    border-radius: 999px;
+    background: var(--ace-gold);
+    color: var(--ace-purple-dark);
+    font-weight: 700;
+    font-size: 0.9rem;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+.feature-badge i {
+    margin-right: 6px;
+}
+
+.profile-feature .profile-content {
+    color: #fff;
+}
+
+.feature-pill {
+    display: inline-block;
+    padding: 6px 16px;
+    border: 1px solid var(--ace-gold);
+    border-radius: 999px;
+    color: var(--ace-gold-light);
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.feature-pill i {
+    margin-right: 6px;
+}
+
+.profile-feature .profile-name {
+    font-family: Georgia, 'Times New Roman', serif;
+    color: #fff;
+    font-size: 2.6rem;
+    line-height: 1.15;
+    margin: 18px 0 10px;
+}
+
+.feature-accent {
+    color: var(--ace-gold);
+}
+
+.profile-feature .profile-role {
+    color: var(--ace-gold-light);
+    font-size: 1.1rem;
+    margin-bottom: 22px;
+}
+
+.profile-feature .profile-content p {
+    color: rgba(255, 255, 255, 0.88);
+}
+
+.feature-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 6px 0 26px;
+}
+
+.feature-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 16px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(212, 175, 55, 0.45);
+    color: #fff;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.feature-tag i {
+    color: var(--ace-gold);
+}
+
+@media (max-width: 768px) {
+    .profile-feature .profile-name {
+        font-size: 2rem;
+    }
+
+    .feature-badge {
+        bottom: -14px;
+    }
+}

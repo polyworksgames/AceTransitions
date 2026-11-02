@@ -506,12 +506,42 @@
     }
 }
 
-/* Apply Today logo */
-.apply-logo {
+/* Apply Today banner image */
+.application-header.application-header--banner {
+    background: none;
+    box-shadow: none;
+    padding: 0;
+    border-radius: 0;
+    margin-bottom: 0;
+}
+
+.apply-banner {
     display: block;
-    height: 110px;
-    width: auto;
-    margin: 0 auto 12px;
+    width: 100%;
+    height: auto;
+    border-radius: var(--border-radius-lg);
+    margin: 0 auto 40px;
+}
+
+/* Position card sub-sections */
+.position-subhead {
+    font-size: 1.1rem;
+    color: var(--deep-blue);
+    font-weight: 600;
+    margin: 20px 0 10px;
+}
+
+.position-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+}
+
+@media (max-width: 768px) {
+    .position-columns {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
 }
 
         padding: 120px 0 60px;
