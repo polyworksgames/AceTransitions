@@ -148,11 +148,15 @@
     margin-bottom: 44px;
 }
 
+.staff-main .container {
+    max-width: 1400px;
+}
+
 .leaders-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 28px;
-    max-width: 1240px;
+    max-width: 1360px;
     margin: 0 auto;
 }
 
@@ -187,13 +191,24 @@
     min-width: 0;
 }
 
+.portrait-frame {
+    padding: 5px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #9C7418 0%, #F7E7A4 13%, #D4AF37 30%, #FFF8D6 46%, #C79B2A 60%, #F3DE8C 78%, #8A6414 100%);
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.8),
+        0 0 0 1px rgba(138, 100, 20, 0.45),
+        0 0 20px rgba(212, 175, 55, 0.38),
+        0 12px 24px rgba(36, 16, 69, 0.16);
+}
+
 .card-portrait img {
     display: block;
     width: 100%;
     height: 300px;
     object-fit: cover;
     object-position: 50% 15%;
-    border-radius: 10px;
+    border-radius: 11px;
 }
 
 .photo-caption {
