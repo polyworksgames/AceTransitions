@@ -7,7 +7,12 @@
     padding: 155px 0 76px;
     text-align: center;
     color: #FFFFFF;
-    background: linear-gradient(135deg, var(--ace-purple-dark) 0%, var(--ace-purple) 55%, var(--ace-navy) 100%);
+    background-image:
+        linear-gradient(180deg, rgba(27, 9, 46, 0.92) 0%, rgba(58, 22, 100, 0.62) 45%, rgba(30, 14, 58, 0.94) 100%),
+        url("../assets/home-hero.png");
+    background-size: cover;
+    background-position: center 42%;
+    background-repeat: no-repeat;
 }
 
 .staff-hero::before {
@@ -469,6 +474,7 @@
 @media (max-width: 640px) {
     .staff-hero {
         padding: 120px 0 56px;
+        background-position: 58% center;
     }
 
     .staff-pillars-inner {
