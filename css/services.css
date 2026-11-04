@@ -43,20 +43,6 @@
     color: rgba(255, 255, 255, 0.9);
 }
 
-/* Journey copy stays available to screen readers; the artwork carries the same
-   words visually on wide screens. */
-.svc-journey-copy {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    margin: -1px;
-    padding: 0;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
-    line-height: 1.6;
-}
-
 /* ----- Service cards ----- */
 .svc-list {
     padding: 58px 0 66px;
@@ -172,15 +158,89 @@
 
 /* ----- Journey band ----- */
 .svc-journey {
-    position: relative;
-    background: #100e2e;
-    line-height: 0;
+    padding: 48px 0 52px;
+    background:
+        radial-gradient(55% 110% at 0% 105%, rgba(168, 102, 58, 0.22), transparent 60%),
+        radial-gradient(55% 110% at 100% 105%, rgba(212, 175, 55, 0.16), transparent 62%),
+        linear-gradient(160deg, #0b0a26 0%, #1a1240 55%, #2b1052 100%);
+    color: #FFFFFF;
+    text-align: center;
+    line-height: 1.6;
 }
 
-.svc-journey-art {
-    display: block;
-    width: 100%;
-    height: auto;
+.svc-journey h2 {
+    margin: 0;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: clamp(1.8rem, 3vw, 2.3rem);
+    letter-spacing: -0.2px;
+    color: #FFFFFF;
+}
+
+.svc-journey-rule {
+    width: 74px;
+    height: 2px;
+    margin: 16px auto 34px;
+    background: linear-gradient(90deg, transparent, var(--ace-gold), transparent);
+}
+
+.svc-steps {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    text-align: left;
+}
+
+.svc-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 0 26px;
+}
+
+.svc-step + .svc-step {
+    border-left: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.svc-step:first-child {
+    padding-left: 0;
+}
+
+.svc-step:last-child {
+    padding-right: 0;
+}
+
+.svc-step-icon {
+    display: grid;
+    flex-shrink: 0;
+    place-items: center;
+    width: 60px;
+    height: 60px;
+    border: 2px solid var(--ace-gold);
+    border-radius: 50%;
+    background: linear-gradient(155deg, #1d4580, #0e2a57);
+    box-shadow: 0 8px 20px rgba(3, 8, 30, 0.55);
+    color: var(--ace-gold-light);
+    font-size: 1.32rem;
+}
+
+.svc-step:nth-child(2) .svc-step-icon {
+    background: linear-gradient(155deg, #56218a, #2f1150);
+}
+
+.svc-step h3 {
+    margin: 6px 0 6px;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 1.28rem;
+    color: var(--ace-gold-light);
+}
+
+.svc-step p {
+    margin: 0;
+    font-size: 0.94rem;
+    line-height: 1.65;
+    color: rgba(255, 255, 255, 0.84);
 }
 
 /* ----- CTA ----- */
@@ -227,6 +287,19 @@
     .svc-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
+
+    .svc-steps {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 22px;
+        max-width: 520px;
+        margin: 0 auto;
+    }
+
+    .svc-step,
+    .svc-step + .svc-step {
+        padding: 0;
+        border-left: 0;
+    }
 }
 
 @media (max-width: 820px) {
@@ -244,85 +317,21 @@
     }
 
     .svc-journey {
-        background: linear-gradient(165deg, #0f0b28 0%, #271049 55%, #3B1A6E 100%);
-        line-height: 1.6;
+        padding: 40px 0 44px;
     }
 
-    .svc-journey-art {
-        display: none;
-    }
-
-    .svc-journey-copy {
-        position: static;
-        width: auto;
-        height: auto;
-        margin: 0;
-        padding: 44px 22px 48px;
-        overflow: visible;
-        clip-path: none;
-        white-space: normal;
-        text-align: center;
-        color: #FFFFFF;
-    }
-
-    .svc-journey-copy h2 {
-        margin: 0;
-        font-size: clamp(1.6rem, 6.4vw, 2.1rem);
-        color: #FFFFFF;
+    .svc-journey h2 {
+        font-size: clamp(1.6rem, 6.4vw, 2rem);
     }
 
     .svc-journey-rule {
-        width: 74px;
-        height: 2px;
-        margin: 16px auto 26px;
-        background: linear-gradient(90deg, transparent, var(--ace-gold-light), transparent);
-    }
-
-    .svc-steps {
-        display: grid;
-        gap: 22px;
-        max-width: 520px;
-        margin: 0 auto;
-        padding: 0;
-        list-style: none;
-        text-align: left;
-    }
-
-    .svc-step {
-        display: flex;
-        align-items: flex-start;
-        gap: 16px;
+        margin-bottom: 28px;
     }
 
     .svc-step-icon {
-        display: grid;
-        flex-shrink: 0;
-        place-items: center;
-        width: 54px;
-        height: 54px;
-        border-radius: 50%;
-        background: linear-gradient(155deg, #10315f, #08234c);
-        box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.5);
-        color: var(--ace-gold-light);
+        width: 52px;
+        height: 52px;
         font-size: 1.15rem;
-    }
-
-    .svc-step:nth-child(2) .svc-step-icon {
-        background: linear-gradient(155deg, #451a66, #2a0f42);
-    }
-
-    .svc-step h3 {
-        margin: 4px 0 4px;
-        font-family: Georgia, 'Times New Roman', serif;
-        font-size: 1.2rem;
-        color: var(--ace-gold-light);
-    }
-
-    .svc-step p {
-        margin: 0;
-        font-size: 0.94rem;
-        line-height: 1.6;
-        color: rgba(255, 255, 255, 0.82);
     }
 
     .svc-cta-inner {
