@@ -16,7 +16,7 @@
     z-index: -2;
     background-image:
         linear-gradient(90deg, rgba(35, 2, 49, 0.20), rgba(35, 2, 49, 0.03) 45%, transparent 68%),
-        url("../assets/staff-hero.webp");
+        url("../assets/staff-hero.webp?v=2");
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
