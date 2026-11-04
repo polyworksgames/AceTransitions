@@ -3,60 +3,105 @@
 /* ----- Hero ----- */
 .staff-hero {
     position: relative;
+    isolation: isolate;
     overflow: hidden;
-    padding: 155px 0 76px;
-    text-align: center;
+    padding: 0;
     color: #FFFFFF;
+    background: #310845;
+}
+
+.staff-hero-image {
+    position: absolute;
+    inset: 0;
+    z-index: -2;
     background-image:
-        linear-gradient(180deg, rgba(27, 9, 46, 0.92) 0%, rgba(58, 22, 100, 0.62) 45%, rgba(30, 14, 58, 0.94) 100%),
-        url("../assets/home-hero.png");
+        linear-gradient(90deg, rgba(35, 2, 49, 0.20), rgba(35, 2, 49, 0.03) 45%, transparent 68%),
+        url("../assets/staff-hero.webp");
     background-size: cover;
-    background-position: center 42%;
+    background-position: center;
     background-repeat: no-repeat;
 }
 
 .staff-hero::before {
     content: "";
     position: absolute;
-    inset: 0;
-    background: radial-gradient(circle at 50% 0%, rgba(212, 175, 55, 0.22), transparent 55%);
-    pointer-events: none;
+    z-index: -1;
+    inset: 0 47% 0 0;
+    background: linear-gradient(105deg, rgba(27, 0, 42, 0.55), rgba(58, 6, 80, 0.20) 80%, transparent);
 }
 
-.staff-hero .container {
+.staff-hero-inner {
     position: relative;
+    display: flex;
+    align-items: center;
+    max-width: 1440px;
+    min-height: clamp(470px, 35vw, 620px);
+    margin: 0 auto;
+    padding: 132px clamp(26px, 6vw, 92px) 56px;
+}
+
+.staff-hero-copy {
+    width: min(555px, 46%);
+    text-align: center;
+    color: #FFFFFF;
+    filter: drop-shadow(0 4px 6px rgba(24, 0, 33, 0.3));
 }
 
 .staff-hero .home-eyebrow {
+    margin-bottom: 14px;
+    letter-spacing: 3.7px;
     color: var(--ace-gold-light);
 }
 
 .staff-hero h1 {
-    margin: 0 0 16px;
-    font-size: clamp(2.4rem, 5vw, 3.9rem);
-    line-height: 1.05;
+    margin: 0;
+    font-size: clamp(2.5rem, 4.4vw, 4.6rem);
+    line-height: 0.99;
+    letter-spacing: -1.2px;
     color: #FFFFFF;
 }
 
 .staff-hero h1 span {
     display: block;
-    color: var(--ace-gold);
+    font-weight: bold;
+    color: #F8CF69;
 }
 
 .staff-hero-rule {
-    width: 64%;
-    max-width: 420px;
+    width: 60%;
     height: 2px;
-    margin: 20px auto;
-    background: linear-gradient(to right, transparent, var(--ace-gold-light), transparent);
+    margin: 18px auto 19px;
+    background: linear-gradient(to right, transparent, #FBD477 35%, #FBD477 65%, transparent);
 }
 
 .staff-hero p {
-    max-width: 640px;
-    margin: 0 auto;
-    font-size: 1.02rem;
-    line-height: 1.7;
-    color: #EDE6F6;
+    max-width: 450px;
+    margin: 0 auto 23px;
+    font-size: 1rem;
+    line-height: 1.65;
+    color: #FAF1FF;
+}
+
+.staff-hero-cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 12px 24px;
+    font-size: 0.8rem;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    color: #FCE6AA;
+    text-decoration: none;
+    background: rgba(40, 5, 54, 0.48);
+    border: 1px solid rgba(253, 213, 119, 0.75);
+    border-radius: 100px;
+    transition: background 0.2s, transform 0.2s;
+}
+
+.staff-hero-cta:hover {
+    background: #4E1660;
+    transform: translateY(-2px);
 }
 
 /* ----- Pillars ----- */
@@ -449,6 +494,14 @@
         grid-template-columns: 1fr;
         max-width: 760px;
     }
+
+    .staff-hero-copy {
+        width: 50%;
+    }
+
+    .staff-hero h1 {
+        font-size: clamp(2.3rem, 4.9vw, 3.9rem);
+    }
 }
 
 @media (max-width: 810px) {
@@ -472,9 +525,32 @@
 }
 
 @media (max-width: 640px) {
-    .staff-hero {
-        padding: 120px 0 56px;
+    .staff-hero-inner {
+        min-height: 520px;
+        padding: 120px 20px 46px;
+    }
+
+    .staff-hero-image {
         background-position: 58% center;
+    }
+
+    .staff-hero::before {
+        inset: 0;
+        background: linear-gradient(90deg, rgba(24, 3, 38, 0.95) 0%, rgba(37, 5, 51, 0.74) 65%, rgba(35, 6, 43, 0.2));
+    }
+
+    .staff-hero-copy {
+        width: 100%;
+        margin: 0 auto;
+    }
+
+    .staff-hero h1 {
+        font-size: 2.6rem;
+    }
+
+    .staff-hero p {
+        max-width: 520px;
+        font-size: 0.9rem;
     }
 
     .staff-pillars-inner {
