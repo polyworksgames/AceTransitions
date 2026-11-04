@@ -2,21 +2,49 @@
 
 /* ----- Hero ----- */
 .svc-hero {
-    position: relative;
-    padding-top: 84px; /* clears the fixed navbar */
-    background: #0b0620;
-    line-height: 0;
+    min-height: 380px;
+    padding: 140px 0 80px;
+    background:
+        url('../assets/careers-hero.jpg?v=2') center / cover no-repeat,
+        linear-gradient(135deg, var(--ace-navy) 0%, var(--ace-purple) 100%);
+    color: #FFFFFF;
+    text-align: left;
 }
 
-.svc-hero-art {
-    display: block;
-    width: 100%;
-    height: auto;
+.svc-eyebrow {
+    display: inline-block;
+    padding-bottom: 10px;
+    margin-bottom: 18px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--ace-gold-light);
+    border-bottom: 3px solid var(--ace-gold);
 }
 
-/* Real heading and copy stay available to screen readers; the artwork carries
-   the same words visually on wide screens. */
-.svc-hero-copy,
+.svc-hero-copy h1 {
+    margin: 0 0 18px;
+    font-size: 3rem;
+    font-weight: 700;
+    line-height: 1.1;
+    color: #FFFFFF;
+}
+
+.svc-hero-copy h1 span {
+    color: var(--ace-gold-light);
+}
+
+.svc-hero-copy p {
+    max-width: 620px;
+    margin: 0;
+    font-size: 1.15rem;
+    line-height: 1.7;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* Journey copy stays available to screen readers; the artwork carries the same
+   words visually on wide screens. */
 .svc-journey-copy {
     position: absolute;
     width: 1px;
@@ -27,14 +55,6 @@
     clip-path: inset(50%);
     white-space: nowrap;
     line-height: 1.6;
-}
-
-.svc-eyebrow {
-    font-size: 0.78rem;
-    font-weight: 600;
-    letter-spacing: 3.4px;
-    text-transform: uppercase;
-    color: var(--ace-gold-light);
 }
 
 /* ----- Service cards ----- */
@@ -211,53 +231,16 @@
 
 @media (max-width: 820px) {
 
-    /* Artwork is too fine-grained to read at this size, so show the real copy. */
     .svc-hero {
-        padding-top: 84px;
-        background: linear-gradient(168deg, #1a0630 0%, #341457 48%, #6b3320 78%, #a8663a 100%);
-    }
-
-    .svc-hero-art {
-        display: none;
-    }
-
-    .svc-hero-copy {
-        position: static;
-        width: auto;
-        height: auto;
-        margin: 0;
-        padding: 42px 22px 48px;
-        overflow: visible;
-        clip-path: none;
-        white-space: normal;
-        text-align: center;
-        color: #FFFFFF;
+        padding: 120px 0 60px;
     }
 
     .svc-hero-copy h1 {
-        margin: 12px 0 0;
-        font-size: clamp(2.1rem, 8vw, 2.9rem);
-        line-height: 1.05;
-        color: #FFFFFF;
-    }
-
-    .svc-hero-copy h1 span {
-        color: var(--ace-gold-light);
-    }
-
-    .svc-hero-rule {
-        width: 74px;
-        height: 2px;
-        margin: 18px auto 18px;
-        background: linear-gradient(90deg, transparent, var(--ace-gold-light), transparent);
+        font-size: clamp(2.1rem, 8vw, 2.6rem);
     }
 
     .svc-hero-copy p {
-        max-width: 520px;
-        margin: 0 auto;
-        font-size: 1rem;
-        line-height: 1.7;
-        color: rgba(255, 255, 255, 0.86);
+        font-size: 1.05rem;
     }
 
     .svc-journey {
